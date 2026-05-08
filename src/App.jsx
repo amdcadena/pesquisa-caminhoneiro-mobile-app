@@ -1,0 +1,614 @@
+import { useEffect, useMemo, useState } from "react";
+
+const OPTIONS = ["Excelente", "Bom", "Razoável", "Pouco útil", "Inútil"];
+
+const SCORE_MAP = {
+  Excelente: 5,
+  Bom: 4,
+  "Razoável": 3,
+  "Pouco útil": 2,
+  "Inútil": 1,
+};
+
+const QUESTIONS = [
+  "O aplicativo para controle de pneus e manutenção do caminhão parece útil para sua rotina?",
+  "O quanto seria útil acompanhar a pressão dos pneus no aplicativo?",
+  "O quanto seria útil registrar e acompanhar o desgaste dos pneus?",
+  "O quanto seria útil consultar o histórico de manutenções do caminhão?",
+  "O quanto seria útil receber alertas de manutenção preventiva?",
+  "O quanto seria útil preencher um checklist rápido antes de sair para viagem?",
+  "O quanto seria útil registrar trocas e rodízios de pneus?",
+  "O quanto seria útil acompanhar custos com pneus e manutenção?",
+  "O quanto seria útil receber alertas de situações críticas do caminhão ou dos pneus?",
+  "O quanto você considera importante que esse aplicativo exista no seu dia a dia?",
+  "Pela descrição das funções, você acredita que o aplicativo seria fácil de usar?",
+];
+
+const STORAGE_KEY = "pesquisa-caminhoneiro-web";
+
+const emptyRespondent = {
+  nome: "",
+  email: "",
+  celular: "",
+  tipoCaminhao: "",
+  tipoPneu: "",
+  mediaKmMes: "",
+  fornecedorPrincipal: "",
+};
+
+function downloadCsv(filename, rows) {
+  const csv = rows
+    .map((row) =>
+      row
+        .map((cell) => `"${String(cell ?? "").replaceAll('"', '""')}"`)
+        .join(",")
+    )
+    .join("\n");
+
+  const blob = new Blob(["\ufeff" + csv], {
+    type: "text/csv;charset=utf-8;",
+  });
+
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+}
+
+export default function App() {
+  const [screen, setScreen] = useState("home");
+  const [respondent, setRespondent] = useState(emptyRespondent);
+  const [answers, setAnswers] = useState(Array(QUESTIONS.length).fill(""));
+  const [questionIndex, setQuestionIndex] = useState(0);
+  const [suggestion, setSuggestion] = useState("");
+  const [records, setRecords] = useState([]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        setRecords(JSON.parse(saved));
+      } catch {
+        setRecords([]);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+  }, [records]);
+
+  const progress = ((questionIndex + 1) / QUESTIONS.length) * 100;
+
+  const summary = useMemo(() => {
+    return QUESTIONS.map((question, index) => {
+      const selectedAnswers = records.map((r) => r.answers[index]).filter(Boolean);
+      const scores = selectedAnswers.map((a) => SCORE_MAP[a] || 0);
+      const average = scores.length
+        ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(2)
+        : "0.00";
+
+      return {
+        question,
+        total: selectedAnswers.length,
+        average,
+        excelente: selectedAnswers.filter((a) => a === "Excelente").length,
+        bom: selectedAnswers.filter((a) => a === "Bom").length,
+        razoavel: selectedAnswers.filter((a) => a === "Razoável").length,
+        poucoUtil: selectedAnswers.filter((a) => a === "Pouco útil").length,
+        inutil: selectedAnswers.filter((a) => a === "Inútil").length,
+      };
+    });
+  }, [records]);
+
+  function resetSurvey() {
+    setRespondent(emptyRespondent);
+    setAnswers(Array(QUESTIONS.length).fill(""));
+    setQuestionIndex(0);
+    setSuggestion("");
+  }
+
+  function startSurvey() {
+    if (!respondent.nome.trim()) {
+      alert("Preencha o nome do caminhoneiro.");
+      return;
+    }
+    setScreen("survey");
+  }
+
+  function nextQuestion() {
+    if (!answers[questionIndex]) {
+      alert("Escolha uma opção antes de continuar.");
+      return;
+    }
+
+    if (questionIndex === QUESTIONS.length - 1) {
+      setScreen("suggestion");
+      return;
+    }
+
+    setQuestionIndex((prev) => prev + 1);
+  }
+
+  function previousQuestion() {
+    if (questionIndex > 0) {
+      setQuestionIndex((prev) => prev - 1);
+    }
+  }
+
+  function finishSurvey() {
+    const average = (
+      answers.reduce((sum, answer) => sum + (SCORE_MAP[answer] || 0), 0) /
+      QUESTIONS.length
+    ).toFixed(2);
+
+    const record = {
+      id: Date.now(),
+      respondent,
+      answers,
+      suggestion,
+      average,
+      createdAt: new Date().toLocaleString("pt-BR"),
+    };
+
+    setRecords((prev) => [record, ...prev]);
+    alert(`Pesquisa salva com sucesso para ${respondent.nome}. Média geral: ${average}`);
+    resetSurvey();
+    setScreen("home");
+  }
+
+  function exportDetailedCsv() {
+    if (!records.length) {
+      alert("Ainda não há respostas para exportar.");
+      return;
+    }
+
+    const headers = [
+      "Nome",
+      "E-mail",
+      "Celular",
+      "Tipo de caminhão",
+      "Tipo de pneu",
+      "Média km/mês",
+      "Fornecedor principal",
+      "Data",
+      "Sugestão",
+      ...QUESTIONS.flatMap((q, i) => [
+        `Pergunta ${i + 1}`,
+        `Resposta ${i + 1}`,
+        `Nota ${i + 1}`,
+      ]),
+    ];
+
+    const rows = records.map((record) => [
+      record.respondent.nome,
+      record.respondent.email,
+      record.respondent.celular,
+      record.respondent.tipoCaminhao,
+      record.respondent.tipoPneu,
+      record.respondent.mediaKmMes,
+      record.respondent.fornecedorPrincipal,
+      record.createdAt,
+      record.suggestion,
+      ...QUESTIONS.flatMap((q, i) => [
+        q,
+        record.answers[i] || "",
+        SCORE_MAP[record.answers[i]] || "",
+      ]),
+    ]);
+
+    downloadCsv("respostas_detalhadas.csv", [headers, ...rows]);
+  }
+
+  function exportSummaryCsv() {
+    if (!records.length) {
+      alert("Ainda não há respostas para exportar.");
+      return;
+    }
+
+    const rows = [
+      ["Pergunta", "Total respostas", "Média", "Excelente", "Bom", "Razoável", "Pouco útil", "Inútil"],
+      ...summary.map((item) => [
+        item.question,
+        item.total,
+        item.average,
+        item.excelente,
+        item.bom,
+        item.razoavel,
+        item.poucoUtil,
+        item.inutil,
+      ]),
+    ];
+
+    downloadCsv("resumo_pesquisa.csv", rows);
+  }
+
+  function exportSuggestionsCsv() {
+    const suggestions = records.filter((r) => r.suggestion?.trim());
+
+    if (!suggestions.length) {
+      alert("Ainda não há sugestões para exportar.");
+      return;
+    }
+
+    const rows = [
+      [
+        "Nome",
+        "E-mail",
+        "Celular",
+        "Tipo de caminhão",
+        "Tipo de pneu",
+        "Média km/mês",
+        "Fornecedor principal",
+        "Data",
+        "Sugestão",
+      ],
+      ...suggestions.map((record) => [
+        record.respondent.nome,
+        record.respondent.email,
+        record.respondent.celular,
+        record.respondent.tipoCaminhao,
+        record.respondent.tipoPneu,
+        record.respondent.mediaKmMes,
+        record.respondent.fornecedorPrincipal,
+        record.createdAt,
+        record.suggestion,
+      ]),
+    ];
+
+    downloadCsv("sugestoes.csv", rows);
+  }
+
+  function Card({ children }) {
+    return (
+      <div
+        style={{
+          background: "#18181b",
+          border: "1px solid #27272a",
+          borderRadius: 20,
+          padding: 20,
+          marginBottom: 16,
+          boxShadow: "0 8px 30px rgba(0,0,0,0.25)",
+        }}
+      >
+        {children}
+      </div>
+    );
+  }
+
+  function PrimaryButton({ children, onClick, full = false }) {
+    return (
+      <button
+        onClick={onClick}
+        style={{
+          background: "#dc2626",
+          color: "white",
+          border: "none",
+          borderRadius: 14,
+          padding: "14px 18px",
+          fontSize: 16,
+          fontWeight: 600,
+          cursor: "pointer",
+          width: full ? "100%" : "auto",
+        }}
+      >
+        {children}
+      </button>
+    );
+  }
+
+  function SecondaryButton({ children, onClick, disabled = false }) {
+    return (
+      <button
+        onClick={onClick}
+        disabled={disabled}
+        style={{
+          background: disabled ? "#18181b" : "#09090b",
+          color: disabled ? "#666" : "white",
+          border: "1px solid #3f3f46",
+          borderRadius: 14,
+          padding: "14px 18px",
+          fontSize: 16,
+          fontWeight: 600,
+          cursor: disabled ? "not-allowed" : "pointer",
+        }}
+      >
+        {children}
+      </button>
+    );
+  }
+
+  function Field({ label, value, onChange, placeholder = "" }) {
+    return (
+      <div style={{ marginBottom: 14 }}>
+        <label style={{ display: "block", marginBottom: 6, color: "#d4d4d8", fontSize: 14 }}>
+          {label}
+        </label>
+        <input
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          style={{
+            width: "100%",
+            height: 46,
+            borderRadius: 14,
+            border: "1px solid #3f3f46",
+            background: "#09090b",
+            color: "white",
+            padding: "0 14px",
+            fontSize: 15,
+          }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#09090b",
+        color: "white",
+        padding: 16,
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 760,
+          margin: "0 auto",
+        }}
+      >
+        <div style={{ marginBottom: 20 }}>
+          <h1 style={{ margin: 0, fontSize: 30 }}>Pesquisa do Caminhoneiro</h1>
+          <p style={{ color: "#a1a1aa", marginTop: 6 }}>
+            Avaliação das funcionalidades do aplicativo
+          </p>
+        </div>
+
+        {screen === "home" && (
+          <>
+            <Card>
+              <h2 style={{ marginTop: 0 }}>O que esta pesquisa faz</h2>
+              <p style={{ color: "#d4d4d8", lineHeight: 1.6 }}>
+                Coleta a percepção do caminhoneiro sobre as funcionalidades pensadas para o app,
+                guarda os dados localmente no navegador e permite exportar relatórios em CSV.
+              </p>
+            </Card>
+
+            <Card>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <PrimaryButton onClick={() => setScreen("identify")}>
+                  Nova pesquisa
+                </PrimaryButton>
+                <SecondaryButton onClick={() => setScreen("reports")}>
+                  Relatórios
+                </SecondaryButton>
+              </div>
+            </Card>
+
+            {records.length > 0 && (
+              <Card>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+                    gap: 12,
+                  }}
+                >
+                  <div style={{ background: "#09090b", borderRadius: 14, padding: 14 }}>
+                    <div style={{ color: "#a1a1aa", fontSize: 13 }}>Respostas</div>
+                    <div style={{ fontSize: 28, fontWeight: 700 }}>{records.length}</div>
+                  </div>
+                  <div style={{ background: "#09090b", borderRadius: 14, padding: 14 }}>
+                    <div style={{ color: "#a1a1aa", fontSize: 13 }}>Sugestões</div>
+                    <div style={{ fontSize: 28, fontWeight: 700 }}>
+                      {records.filter((r) => r.suggestion?.trim()).length}
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            )}
+          </>
+        )}
+
+        {screen === "identify" && (
+          <Card>
+            <h2 style={{ marginTop: 0 }}>Dados do caminhoneiro</h2>
+            <Field
+              label="Nome do caminhoneiro *"
+              value={respondent.nome}
+              onChange={(e) => setRespondent({ ...respondent, nome: e.target.value })}
+            />
+            <Field
+              label="E-mail"
+              value={respondent.email}
+              onChange={(e) => setRespondent({ ...respondent, email: e.target.value })}
+            />
+            <Field
+              label="Celular"
+              value={respondent.celular}
+              onChange={(e) => setRespondent({ ...respondent, celular: e.target.value })}
+            />
+            <Field
+              label="Tipo de caminhão"
+              value={respondent.tipoCaminhao}
+              onChange={(e) => setRespondent({ ...respondent, tipoCaminhao: e.target.value })}
+            />
+            <Field
+              label="Tipo / medida do pneu"
+              value={respondent.tipoPneu}
+              onChange={(e) => setRespondent({ ...respondent, tipoPneu: e.target.value })}
+            />
+            <Field
+              label="Média de km por mês"
+              value={respondent.mediaKmMes}
+              onChange={(e) => setRespondent({ ...respondent, mediaKmMes: e.target.value })}
+            />
+            <Field
+              label="Principal fornecedor hoje"
+              value={respondent.fornecedorPrincipal}
+              onChange={(e) =>
+                setRespondent({ ...respondent, fornecedorPrincipal: e.target.value })
+              }
+            />
+
+            <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
+              <SecondaryButton onClick={() => setScreen("home")}>Voltar</SecondaryButton>
+              <PrimaryButton onClick={startSurvey}>Iniciar pesquisa</PrimaryButton>
+            </div>
+          </Card>
+        )}
+
+        {screen === "survey" && (
+          <Card>
+            <div
+              style={{
+                height: 10,
+                background: "#27272a",
+                borderRadius: 999,
+                overflow: "hidden",
+                marginBottom: 18,
+              }}
+            >
+              <div
+                style={{
+                  width: `${progress}%`,
+                  height: "100%",
+                  background: "#dc2626",
+                }}
+              />
+            </div>
+
+            <p style={{ color: "#a1a1aa", marginBottom: 8 }}>
+              Pergunta {questionIndex + 1} de {QUESTIONS.length}
+            </p>
+
+            <h2 style={{ lineHeight: 1.5 }}>{QUESTIONS[questionIndex]}</h2>
+
+            <div style={{ marginTop: 18, display: "grid", gap: 10 }}>
+              {OPTIONS.map((option) => {
+                const selected = answers[questionIndex] === option;
+                return (
+                  <button
+                    key={option}
+                    onClick={() => {
+                      const updated = [...answers];
+                      updated[questionIndex] = option;
+                      setAnswers(updated);
+                    }}
+                    style={{
+                      textAlign: "left",
+                      padding: 16,
+                      borderRadius: 14,
+                      border: selected ? "1px solid #ef4444" : "1px solid #3f3f46",
+                      background: selected ? "rgba(220,38,38,0.15)" : "#09090b",
+                      color: "white",
+                      cursor: "pointer",
+                      fontSize: 15,
+                    }}
+                  >
+                    {option}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div style={{ display: "flex", gap: 10, marginTop: 18, flexWrap: "wrap" }}>
+              <SecondaryButton
+                onClick={previousQuestion}
+                disabled={questionIndex === 0}
+              >
+                Anterior
+              </SecondaryButton>
+              <PrimaryButton onClick={nextQuestion}>Próxima</PrimaryButton>
+            </div>
+          </Card>
+        )}
+
+        {screen === "suggestion" && (
+          <Card>
+            <h2 style={{ marginTop: 0 }}>Sugestão final</h2>
+            <p style={{ color: "#a1a1aa" }}>
+              Se quiser, escreva uma melhoria ou funcionalidade que esteja faltando.
+            </p>
+            <textarea
+              value={suggestion}
+              onChange={(e) => setSuggestion(e.target.value)}
+              style={{
+                width: "100%",
+                minHeight: 160,
+                borderRadius: 14,
+                border: "1px solid #3f3f46",
+                background: "#09090b",
+                color: "white",
+                padding: 14,
+                fontSize: 15,
+                marginTop: 12,
+              }}
+            />
+            <div style={{ display: "flex", gap: 10, marginTop: 18, flexWrap: "wrap" }}>
+              <SecondaryButton onClick={() => setScreen("survey")}>Voltar</SecondaryButton>
+              <PrimaryButton onClick={finishSurvey}>Finalizar pesquisa</PrimaryButton>
+            </div>
+          </Card>
+        )}
+
+        {screen === "reports" && (
+          <>
+            <Card>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <SecondaryButton onClick={() => setScreen("home")}>Voltar</SecondaryButton>
+                <PrimaryButton onClick={exportDetailedCsv}>Exportar detalhado</PrimaryButton>
+                <SecondaryButton onClick={exportSummaryCsv}>Exportar resumo</SecondaryButton>
+                <SecondaryButton onClick={exportSuggestionsCsv}>Exportar sugestões</SecondaryButton>
+              </div>
+            </Card>
+
+            <Card>
+              <h2 style={{ marginTop: 0 }}>Resumo por pergunta</h2>
+              {summary.map((item, index) => (
+                <div
+                  key={index}
+                  style={{
+                    borderTop: index === 0 ? "none" : "1px solid #27272a",
+                    padding: "14px 0",
+                  }}
+                >
+                  <div style={{ fontWeight: 600, marginBottom: 8 }}>{item.question}</div>
+                  <div style={{ color: "#d4d4d8", fontSize: 14 }}>
+                    Média: {item.average} | Total: {item.total} | Excelente: {item.excelente} | Bom: {item.bom} | Razoável: {item.razoavel} | Pouco útil: {item.poucoUtil} | Inútil: {item.inutil}
+                  </div>
+                </div>
+              ))}
+            </Card>
+
+            <Card>
+              <h2 style={{ marginTop: 0 }}>Sugestões</h2>
+              {records.filter((r) => r.suggestion?.trim()).length === 0 && (
+                <p style={{ color: "#a1a1aa" }}>Ainda não há sugestões registradas.</p>
+              )}
+
+              {records
+                .filter((r) => r.suggestion?.trim())
+                .map((record) => (
+                  <div
+                    key={record.id}
+                    style={{
+                      borderTop: "1px solid #27272a",
+                      padding: "14px 0",
+                    }}
+                  >
+                    <div style={{ fontWeight: 600 }}>{record.respondent.nome}</div>
+                    <div style={{ color: "#a1a1aa", fontSize: 13, margin: "4px 0 8px" }}>
+                      {record.createdAt}
+                    </div>
+                    <div style={{ lineHeight: 1.6 }}>{record.suggestion}</div>
+                  </div>
+                ))}
+            </Card>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
