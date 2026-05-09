@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { supabase } from "./supabaseClient";
 
 const OPTIONS = ["Excelente", "Bom", "Razoável", "Pouco útil", "Inútil"];
 
@@ -222,11 +223,11 @@ export default function App() {
     status: "concluida",
   };
 
-  const { error } = await supabase
-    .from("pesquisas_caminhoneiro")
-    .insert([payload]);
+ const { error } = await supabase
+  .from("pesquisas_caminhoneiro")
+  .insert([payload]);
 
- if (error) {
+if (error) {
   alert("Erro ao salvar no Supabase: " + error.message);
   return;
 }
@@ -236,6 +237,10 @@ setRecords((prev) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
   return updated;
 });
+
+alert(`Pesquisa salva com sucesso para ${respondent.nome}. Média geral: ${average}`);
+resetSurvey();
+setScreen("home");
 
   function unlockReports() {
     if (reportPasswordInput !== REPORT_PASSWORD) {
