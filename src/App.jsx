@@ -10,6 +10,20 @@ const SCORE_MAP = {
   "Inútil": 1,
 };
 
+const TIRE_APPLICATIONS = [
+  "MA - Misto All Position",
+  "UA - Urbano All Position",
+  "RA - Regional All Position",
+  "GT - Regional Tração",
+  "OT - OTR",
+  "GD - Regional Direcional",
+  "MD - Misto Direcional",
+  "MT - Misto Tração",
+  "RL - Rodoviário Eixo Livre",
+  "RT - Rodoviário Tração",
+  "RD - Rodoviário Direcional",
+];
+
 const QUESTIONS = [
   "O aplicativo para controle de pneus e manutenção do caminhão parece útil para sua rotina?",
   "O quanto seria útil acompanhar a pressão dos pneus no aplicativo?",
@@ -38,7 +52,7 @@ const emptyRespondent = {
   celular: "",
   tipoCaminhao: "",
   tipoPneu: "",
-  mediaKmMes: "",
+  aplicacaoPneu: "",
   fornecedorPrincipal: "",
 };
 
@@ -149,6 +163,38 @@ function Field({ label, value, onChange, placeholder = "", type = "text" }) {
   );
 }
 
+function SelectField({ label, value, onChange, options }) {
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <label style={{ display: "block", marginBottom: 6, color: "#d4d4d8", fontSize: 14 }}>
+        {label}
+      </label>
+      <select
+        value={value}
+        onChange={onChange}
+        style={{
+          width: "100%",
+          height: 46,
+          borderRadius: 14,
+          border: "1px solid #3f3f46",
+          background: "#09090b",
+          color: "white",
+          padding: "0 14px",
+          fontSize: 15,
+          outline: "none",
+        }}
+      >
+        <option value="">Selecione</option>
+        {options.map((option) => (
+          <option key={option} value={option} style={{ color: "white", background: "#09090b" }}>
+            {option}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 export default function App() {
   const [screen, setScreen] = useState("home");
   const [interviewer, setInterviewer] = useState(emptyInterviewer);
@@ -213,6 +259,10 @@ export default function App() {
     }
     if (!respondent.nome.trim()) {
       alert("Preencha o nome do caminhoneiro.");
+      return;
+    }
+    if (!respondent.aplicacaoPneu.trim()) {
+      alert("Selecione a aplicação do pneu.");
       return;
     }
     setScreen("survey");
@@ -281,8 +331,8 @@ export default function App() {
       "E-mail caminhoneiro",
       "Celular",
       "Tipo de caminhão",
-      "Tipo de pneu",
-      "Média km/mês",
+      "Medida do pneu",
+      "Aplicação do pneu",
       "Fornecedor principal",
       "Data",
       "Sugestão",
@@ -301,7 +351,7 @@ export default function App() {
       record.respondent.celular,
       record.respondent.tipoCaminhao,
       record.respondent.tipoPneu,
-      record.respondent.mediaKmMes,
+      record.respondent.aplicacaoPneu,
       record.respondent.fornecedorPrincipal,
       record.createdAt,
       record.suggestion,
@@ -354,8 +404,8 @@ export default function App() {
         "E-mail caminhoneiro",
         "Celular",
         "Tipo de caminhão",
-        "Tipo de pneu",
-        "Média km/mês",
+        "Medida do pneu",
+        "Aplicação do pneu",
         "Fornecedor principal",
         "Data",
         "Sugestão",
@@ -368,7 +418,7 @@ export default function App() {
         record.respondent.celular,
         record.respondent.tipoCaminhao,
         record.respondent.tipoPneu,
-        record.respondent.mediaKmMes,
+        record.respondent.aplicacaoPneu,
         record.respondent.fornecedorPrincipal,
         record.createdAt,
         record.suggestion,
@@ -377,6 +427,10 @@ export default function App() {
 
     downloadCsv("sugestoes.csv", rows);
   }
+
+  const interviewerGroups = Array.from(
+    new Set(records.map((r) => r.interviewer?.nome || "Não informado"))
+  );
 
   return (
     <div
@@ -405,8 +459,8 @@ export default function App() {
             <Card>
               <h2 style={{ marginTop: 0 }}>O que esta pesquisa faz</h2>
               <p style={{ color: "#d4d4d8", lineHeight: 1.6 }}>
-                Coleta a percepção do caminhoneiro sobre as funcionalidades pensadas para o app, guarda os
-                dados localmente no navegador e permite exportar relatórios em CSV.
+                Coleta a percepção do caminhoneiro sobre as funcionalidades pensadas para o app,
+                guarda os dados localmente no navegador e permite exportar relatórios em CSV.
               </p>
             </Card>
 
@@ -446,9 +500,7 @@ export default function App() {
                   </div>
                   <div style={{ background: "#09090b", borderRadius: 14, padding: 14 }}>
                     <div style={{ color: "#a1a1aa", fontSize: 13 }}>Entrevistadores</div>
-                    <div style={{ fontSize: 28, fontWeight: 700 }}>
-                      {new Set(records.map((r) => r.interviewer?.nome || "Não informado")).size}
-                    </div>
+                    <div style={{ fontSize: 28, fontWeight: 700 }}>{interviewerGroups.length}</div>
                   </div>
                 </div>
               </Card>
@@ -482,9 +534,9 @@ export default function App() {
               </div>
 
               <div>
-                <h3 style={{ marginTop: 0, marginBottom: 12, color: "#f4f4f5" }}>Caminhoneiro</h3>
+                <h3 style={{ marginTop: 0, marginBottom: 12, color: "#f4f4f5" }}>Entrevistado</h3>
                 <Field
-                  label="Nome do caminhoneiro *"
+                  label="Nome do entrevistado *"
                   value={respondent.nome}
                   onChange={(e) => setRespondent({ ...respondent, nome: e.target.value })}
                 />
@@ -505,14 +557,16 @@ export default function App() {
                   onChange={(e) => setRespondent({ ...respondent, tipoCaminhao: e.target.value })}
                 />
                 <Field
-                  label="Tipo / medida do pneu"
+                  label="Medida do pneu"
                   value={respondent.tipoPneu}
                   onChange={(e) => setRespondent({ ...respondent, tipoPneu: e.target.value })}
+                  placeholder="Ex.: 295/80R22.5"
                 />
-                <Field
-                  label="Média de km por mês"
-                  value={respondent.mediaKmMes}
-                  onChange={(e) => setRespondent({ ...respondent, mediaKmMes: e.target.value })}
+                <SelectField
+                  label="Aplicação do pneu *"
+                  value={respondent.aplicacaoPneu}
+                  onChange={(e) => setRespondent({ ...respondent, aplicacaoPneu: e.target.value })}
+                  options={TIRE_APPLICATIONS}
                 />
                 <Field
                   label="Principal fornecedor hoje"
@@ -672,8 +726,10 @@ export default function App() {
 
                 <Card>
                   <h2 style={{ marginTop: 0 }}>Respostas por entrevistador</h2>
-                  {Array.from(new Set(records.map((r) => r.interviewer?.nome || "Não informado"))).map((name) => {
-                    const interviewerRecords = records.filter((r) => (r.interviewer?.nome || "Não informado") === name);
+                  {interviewerGroups.map((name) => {
+                    const interviewerRecords = records.filter(
+                      (r) => (r.interviewer?.nome || "Não informado") === name
+                    );
                     return (
                       <div key={name} style={{ borderTop: "1px solid #27272a", padding: "14px 0" }}>
                         <div style={{ fontWeight: 700 }}>{name}</div>
@@ -704,6 +760,9 @@ export default function App() {
                         <div style={{ fontWeight: 600 }}>{record.respondent.nome}</div>
                         <div style={{ color: "#a1a1aa", fontSize: 13, margin: "4px 0 6px" }}>
                           Entrevistador: {record.interviewer?.nome || "Não informado"} • {record.createdAt}
+                        </div>
+                        <div style={{ color: "#d4d4d8", fontSize: 14, marginBottom: 6 }}>
+                          Aplicação: {record.respondent.aplicacaoPneu || "-"}
                         </div>
                         <div style={{ lineHeight: 1.6 }}>{record.suggestion}</div>
                       </div>
