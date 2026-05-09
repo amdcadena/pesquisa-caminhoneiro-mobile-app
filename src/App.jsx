@@ -49,9 +49,9 @@ function downloadCsv(filename, rows) {
         .map((cell) => `"${String(cell ?? "").replaceAll('"', '""')}"`)
         .join(",")
     )
-.join("\n");
+    .join("\n");
 
-  const blob = new Blob(["﻿" + csv], {
+  const blob = new Blob(["\ufeff" + csv], {
     type: "text/csv;charset=utf-8;",
   });
 
@@ -59,6 +59,94 @@ function downloadCsv(filename, rows) {
   link.href = URL.createObjectURL(blob);
   link.download = filename;
   link.click();
+}
+
+function Card({ children }) {
+  return (
+    <div
+      style={{
+        background: "#18181b",
+        border: "1px solid #27272a",
+        borderRadius: 20,
+        padding: 20,
+        marginBottom: 16,
+        boxShadow: "0 8px 30px rgba(0,0,0,0.25)",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function PrimaryButton({ children, onClick, full = false }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        background: "#dc2626",
+        color: "white",
+        border: "none",
+        borderRadius: 14,
+        padding: "14px 18px",
+        fontSize: 16,
+        fontWeight: 600,
+        cursor: "pointer",
+        width: full ? "100%" : "auto",
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function SecondaryButton({ children, onClick, disabled = false }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        background: disabled ? "#18181b" : "#09090b",
+        color: disabled ? "#666" : "white",
+        border: "1px solid #3f3f46",
+        borderRadius: 14,
+        padding: "14px 18px",
+        fontSize: 16,
+        fontWeight: 600,
+        cursor: disabled ? "not-allowed" : "pointer",
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Field({ label, value, onChange, placeholder = "", type = "text" }) {
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <label style={{ display: "block", marginBottom: 6, color: "#d4d4d8", fontSize: 14 }}>
+        {label}
+      </label>
+      <input
+        type={type}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        autoComplete="off"
+        spellCheck={false}
+        style={{
+          width: "100%",
+          height: 46,
+          borderRadius: 14,
+          border: "1px solid #3f3f46",
+          background: "#09090b",
+          color: "white",
+          padding: "0 14px",
+          fontSize: 15,
+          outline: "none",
+        }}
+      />
+    </div>
+  );
 }
 
 export default function App() {
@@ -288,94 +376,6 @@ export default function App() {
     ];
 
     downloadCsv("sugestoes.csv", rows);
-  }
-
-  function Card({ children }) {
-    return (
-      <div
-        style={{
-          background: "#18181b",
-          border: "1px solid #27272a",
-          borderRadius: 20,
-          padding: 20,
-          marginBottom: 16,
-          boxShadow: "0 8px 30px rgba(0,0,0,0.25)",
-        }}
-      >
-        {children}
-      </div>
-    );
-  }
-
-  function PrimaryButton({ children, onClick, full = false }) {
-    return (
-      <button
-        onClick={onClick}
-        style={{
-          background: "#dc2626",
-          color: "white",
-          border: "none",
-          borderRadius: 14,
-          padding: "14px 18px",
-          fontSize: 16,
-          fontWeight: 600,
-          cursor: "pointer",
-          width: full ? "100%" : "auto",
-        }}
-      >
-        {children}
-      </button>
-    );
-  }
-
-  function SecondaryButton({ children, onClick, disabled = false }) {
-    return (
-      <button
-        onClick={onClick}
-        disabled={disabled}
-        style={{
-          background: disabled ? "#18181b" : "#09090b",
-          color: disabled ? "#666" : "white",
-          border: "1px solid #3f3f46",
-          borderRadius: 14,
-          padding: "14px 18px",
-          fontSize: 16,
-          fontWeight: 600,
-          cursor: disabled ? "not-allowed" : "pointer",
-        }}
-      >
-        {children}
-      </button>
-    );
-  }
-
-  function Field({ label, value, onChange, placeholder = "", type = "text" }) {
-    return (
-      <div style={{ marginBottom: 14 }}>
-        <label style={{ display: "block", marginBottom: 6, color: "#d4d4d8", fontSize: 14 }}>
-          {label}
-        </label>
-        <input
-          type={type}
-          value={value}
-          onChange={onChange}
-          placeholder={placeholder}
-          autoComplete="off"
-          spellCheck={false}
-          style={{
-            width: "100%",
-            height: 46,
-            borderRadius: 14,
-            border: "1px solid #3f3f46",
-            background: "#09090b",
-            color: "white",
-            padding: "0 14px",
-            fontSize: 15,
-            outline: "none",
-          }}
-        />
-      </div>
-    );
   }
 
   return (
