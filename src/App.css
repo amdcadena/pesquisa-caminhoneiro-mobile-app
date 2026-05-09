@@ -74,15 +74,54 @@ export default function App() {
   const [reportUnlocked, setReportUnlocked] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        setRecords(JSON.parse(saved));
-      } catch {
-        setRecords([]);
+  async function loadRecords() {
+    const { data, error } = await supabase
+      .from("pesquisas_caminhoneiro")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Erro ao buscar pesquisas do Supabase:", error.message);
+
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          setRecords(JSON.parse(saved));
+        } catch {
+          setRecords([]);
+        }
       }
+      return;
     }
-  }, []);
+
+    const formatted = (data || []).map((item) => ({
+      id: item.id,
+      interviewer: {
+        nome: item.entrevistador_nome || "",
+        email: item.entrevistador_email || "",
+      },
+      respondent: {
+        nome: item.entrevistado_nome || "",
+        email: item.entrevistado_email || "",
+        celular: item.entrevistado_celular || "",
+        tipoCaminhao: item.tipo_caminhao || "",
+        tipoPneu: item.medida_pneu || "",
+        aplicacaoPneu: item.aplicacao_pneu || "",
+        fornecedorPrincipal: item.fornecedor_principal || "",
+      },
+      answers: item.respostas || [],
+      suggestion: item.sugestao || "",
+      average: item.media_geral ? Number(item.media_geral).toFixed(2) : "0.00",
+      createdAt: item.created_at
+        ? new Date(item.created_at).toLocaleString("pt-BR")
+        : "",
+    }));
+
+    setRecords(formatted);
+  }
+
+  loadRecords();
+}, []);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
@@ -187,22 +226,16 @@ export default function App() {
     .from("pesquisas_caminhoneiro")
     .insert([payload]);
 
-  if (error) {
-    alert("Erro ao salvar no Supabase: " + error.message);
-    return;
-  }
-
-  setRecords((prev) => [record, ...prev]);
-  alert(`Pesquisa salva com sucesso para ${respondent.nome}. Média geral: ${average}`);
-  resetSurvey();
-  setScreen("home");
+ if (error) {
+  alert("Erro ao salvar no Supabase: " + error.message);
+  return;
 }
 
-    setRecords((prev) => [record, ...prev]);
-    alert(`Pesquisa salva com sucesso para ${respondent.nome}. Média geral: ${average}`);
-    resetSurvey();
-    setScreen("home");
-  }
+setRecords((prev) => {
+  const updated = [record, ...prev];
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+  return updated;
+});
 
   function unlockReports() {
     if (reportPasswordInput !== REPORT_PASSWORD) {
