@@ -63,10 +63,9 @@ function downloadCsv(filename, rows) {
         .map((cell) => `"${String(cell ?? "").replaceAll('"', '""')}"`)
         .join(",")
     )
-    .join("
-");
+    .join("\\n");
 
-  const blob = new Blob(["﻿" + csv], {
+  const blob = new Blob(["\\ufeff" + csv], {
     type: "text/csv;charset=utf-8;",
   });
 
