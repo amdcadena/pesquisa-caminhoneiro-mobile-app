@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "./supabaseClient";
 
-const OPTIONS = ["Excelente", "Bom", "Razoável", "Pouco útil", "Inútil"];
+const OPTIONS = ["Excelente", "Bom", "Razoavel", "Pouco útil", "Inútil"];
 
 const SCORE_MAP = {
   Excelente: 5,
   Bom: 4,
-  "Razoável": 3,
+  "Razoavel": 3,
   "Pouco útil": 2,
   "Inútil": 1,
 };
