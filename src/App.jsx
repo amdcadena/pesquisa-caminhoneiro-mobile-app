@@ -63,9 +63,10 @@ function downloadCsv(filename, rows) {
         .map((cell) => `"${String(cell ?? "").replaceAll('"', '""')}"`)
         .join(",")
     )
-    .join("\n");
+    .join("
+");
 
-  const blob = new Blob(["\ufeff" + csv], {
+  const blob = new Blob(["﻿" + csv], {
     type: "text/csv;charset=utf-8;",
   });
 
@@ -88,6 +89,23 @@ function Card({ children }) {
       }}
     >
       {children}
+    </div>
+  );
+}
+
+function MetricCard({ title, value, subtitle = "" }) {
+  return (
+    <div
+      style={{
+        background: "#09090b",
+        border: "1px solid #27272a",
+        borderRadius: 16,
+        padding: 16,
+      }}
+    >
+      <div style={{ color: "#a1a1aa", fontSize: 13 }}>{title}</div>
+      <div style={{ fontSize: 28, fontWeight: 700, marginTop: 6 }}>{value}</div>
+      {subtitle ? <div style={{ color: "#d4d4d8", fontSize: 13, marginTop: 4 }}>{subtitle}</div> : null}
     </div>
   );
 }
@@ -195,6 +213,47 @@ function SelectField({ label, value, onChange, options }) {
   );
 }
 
+function SimpleTable({ rows, hideInterviewer = false }) {
+  if (!rows.length) {
+    return <p style={{ color: "#a1a1aa" }}>Nenhuma pesquisa encontrada com os filtros aplicados.</p>;
+  }
+
+  return (
+    <div style={{ overflowX: "auto" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+        <thead>
+          <tr style={{ color: "#a1a1aa", textAlign: "left", borderBottom: "1px solid #27272a" }}>
+            <th style={{ padding: "10px 8px" }}>Data</th>
+            <th style={{ padding: "10px 8px" }}>Entrevistado</th>
+            <th style={{ padding: "10px 8px" }}>Celular</th>
+            <th style={{ padding: "10px 8px" }}>E-mail</th>
+            <th style={{ padding: "10px 8px" }}>Medida</th>
+            <th style={{ padding: "10px 8px" }}>Aplicação</th>
+            {!hideInterviewer && <th style={{ padding: "10px 8px" }}>Entrevistador</th>}
+            <th style={{ padding: "10px 8px" }}>Média</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((record) => (
+            <tr key={record.id} style={{ borderBottom: "1px solid #27272a" }}>
+              <td style={{ padding: "10px 8px" }}>{record.createdAt}</td>
+              <td style={{ padding: "10px 8px" }}>{record.respondent.nome}</td>
+              <td style={{ padding: "10px 8px" }}>{record.respondent.celular || "-"}</td>
+              <td style={{ padding: "10px 8px" }}>{record.respondent.email || "-"}</td>
+              <td style={{ padding: "10px 8px" }}>{record.respondent.tipoPneu || "-"}</td>
+              <td style={{ padding: "10px 8px" }}>{record.respondent.aplicacaoPneu || "-"}</td>
+              {!hideInterviewer && (
+                <td style={{ padding: "10px 8px" }}>{record.interviewer?.nome || "Oculto"}</td>
+              )}
+              <td style={{ padding: "10px 8px" }}>{record.average}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default function App() {
   const [screen, setScreen] = useState("home");
   const [interviewer, setInterviewer] = useState(emptyInterviewer);
@@ -205,6 +264,10 @@ export default function App() {
   const [records, setRecords] = useState([]);
   const [reportPasswordInput, setReportPasswordInput] = useState("");
   const [reportUnlocked, setReportUnlocked] = useState(false);
+  const [reportMode, setReportMode] = useState("geral");
+  const [selectedInterviewer, setSelectedInterviewer] = useState("");
+  const [selectedApplication, setSelectedApplication] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -223,9 +286,68 @@ export default function App() {
 
   const progress = ((questionIndex + 1) / QUESTIONS.length) * 100;
 
+  const interviewerGroups = useMemo(
+    () => Array.from(new Set(records.map((r) => r.interviewer?.nome || "Não informado"))).sort(),
+    [records]
+  );
+
+  const filteredRecords = useMemo(() => {
+    return records.filter((record) => {
+      const matchesApplication = selectedApplication
+        ? record.respondent.aplicacaoPneu === selectedApplication
+        : true;
+
+      const matchesSearch = searchTerm
+        ? [
+            record.respondent.nome,
+            record.respondent.celular,
+            record.respondent.email,
+            record.respondent.tipoPneu,
+            record.respondent.aplicacaoPneu,
+          ]
+            .join(" ")
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase())
+        : true;
+
+      if (reportMode === "entrevistador") {
+        const matchesInterviewer = selectedInterviewer
+          ? (record.interviewer?.nome || "Não informado") === selectedInterviewer
+          : true;
+        return matchesApplication && matchesSearch && matchesInterviewer;
+      }
+
+      return matchesApplication && matchesSearch;
+    });
+  }, [records, selectedApplication, selectedInterviewer, searchTerm, reportMode]);
+
+  const dashboardSummary = useMemo(() => {
+    const total = filteredRecords.length;
+    const avg = total
+      ? (
+          filteredRecords.reduce((sum, record) => sum + Number(record.average || 0), 0) / total
+        ).toFixed(2)
+      : "0.00";
+
+    const byApplication = {};
+    filteredRecords.forEach((record) => {
+      const key = record.respondent.aplicacaoPneu || "Não informado";
+      byApplication[key] = (byApplication[key] || 0) + 1;
+    });
+
+    const topApplication = Object.entries(byApplication).sort((a, b) => b[1] - a[1])[0];
+
+    return {
+      total,
+      avg,
+      interviewers: new Set(filteredRecords.map((r) => r.interviewer?.nome || "Não informado")).size,
+      topApplication: topApplication ? `${topApplication[0]} (${topApplication[1]})` : "-",
+    };
+  }, [filteredRecords]);
+
   const summary = useMemo(() => {
     return QUESTIONS.map((question, index) => {
-      const selectedAnswers = records.map((r) => r.answers[index]).filter(Boolean);
+      const selectedAnswers = filteredRecords.map((r) => r.answers[index]).filter(Boolean);
       const scores = selectedAnswers.map((a) => SCORE_MAP[a] || 0);
       const average = scores.length
         ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(2)
@@ -242,7 +364,7 @@ export default function App() {
         inutil: selectedAnswers.filter((a) => a === "Inútil").length,
       };
     });
-  }, [records]);
+  }, [filteredRecords]);
 
   function resetSurvey() {
     setInterviewer(emptyInterviewer);
@@ -258,7 +380,7 @@ export default function App() {
       return;
     }
     if (!respondent.nome.trim()) {
-      alert("Preencha o nome do caminhoneiro.");
+      alert("Preencha o nome do entrevistado.");
       return;
     }
     if (!respondent.aplicacaoPneu.trim()) {
@@ -319,7 +441,7 @@ export default function App() {
   }
 
   function exportDetailedCsv() {
-    if (!records.length) {
+    if (!filteredRecords.length) {
       alert("Ainda não há respostas para exportar.");
       return;
     }
@@ -327,8 +449,8 @@ export default function App() {
     const headers = [
       "Entrevistador",
       "E-mail entrevistador",
-      "Nome caminhoneiro",
-      "E-mail caminhoneiro",
+      "Nome entrevistado",
+      "E-mail entrevistado",
       "Celular",
       "Tipo de caminhão",
       "Medida do pneu",
@@ -343,9 +465,9 @@ export default function App() {
       ]),
     ];
 
-    const rows = records.map((record) => [
-      record.interviewer?.nome || "",
-      record.interviewer?.email || "",
+    const rows = filteredRecords.map((record) => [
+      reportMode === "geral" ? "Oculto" : record.interviewer?.nome || "",
+      reportMode === "geral" ? "Oculto" : record.interviewer?.email || "",
       record.respondent.nome,
       record.respondent.email,
       record.respondent.celular,
@@ -366,7 +488,7 @@ export default function App() {
   }
 
   function exportSummaryCsv() {
-    if (!records.length) {
+    if (!filteredRecords.length) {
       alert("Ainda não há respostas para exportar.");
       return;
     }
@@ -389,7 +511,7 @@ export default function App() {
   }
 
   function exportSuggestionsCsv() {
-    const suggestions = records.filter((r) => r.suggestion?.trim());
+    const suggestions = filteredRecords.filter((r) => r.suggestion?.trim());
 
     if (!suggestions.length) {
       alert("Ainda não há sugestões para exportar.");
@@ -399,27 +521,21 @@ export default function App() {
     const rows = [
       [
         "Entrevistador",
-        "E-mail entrevistador",
-        "Nome caminhoneiro",
-        "E-mail caminhoneiro",
+        "Nome entrevistado",
         "Celular",
-        "Tipo de caminhão",
+        "E-mail",
         "Medida do pneu",
         "Aplicação do pneu",
-        "Fornecedor principal",
         "Data",
         "Sugestão",
       ],
       ...suggestions.map((record) => [
-        record.interviewer?.nome || "",
-        record.interviewer?.email || "",
+        reportMode === "geral" ? "Oculto" : record.interviewer?.nome || "",
         record.respondent.nome,
-        record.respondent.email,
         record.respondent.celular,
-        record.respondent.tipoCaminhao,
+        record.respondent.email,
         record.respondent.tipoPneu,
         record.respondent.aplicacaoPneu,
-        record.respondent.fornecedorPrincipal,
         record.createdAt,
         record.suggestion,
       ]),
@@ -427,10 +543,6 @@ export default function App() {
 
     downloadCsv("sugestoes.csv", rows);
   }
-
-  const interviewerGroups = Array.from(
-    new Set(records.map((r) => r.interviewer?.nome || "Não informado"))
-  );
 
   return (
     <div
@@ -441,26 +553,19 @@ export default function App() {
         padding: 16,
       }}
     >
-      <div
-        style={{
-          maxWidth: 900,
-          margin: "0 auto",
-        }}
-      >
+      <div style={{ maxWidth: 1000, margin: "0 auto" }}>
         <div style={{ marginBottom: 20 }}>
           <h1 style={{ margin: 0, fontSize: 30 }}>Pesquisa do Caminhoneiro</h1>
-          <p style={{ color: "#a1a1aa", marginTop: 6 }}>
-            Avaliação das funcionalidades do aplicativo
-          </p>
+          <p style={{ color: "#a1a1aa", marginTop: 6 }}>Fase 2.1 • Formulário + dashboard privado</p>
         </div>
 
         {screen === "home" && (
           <>
             <Card>
-              <h2 style={{ marginTop: 0 }}>O que esta pesquisa faz</h2>
+              <h2 style={{ marginTop: 0 }}>O que esta fase traz</h2>
               <p style={{ color: "#d4d4d8", lineHeight: 1.6 }}>
-                Coleta a percepção do caminhoneiro sobre as funcionalidades pensadas para o app,
-                guarda os dados localmente no navegador e permite exportar relatórios em CSV.
+                Inclusão da aplicação do pneu em seleção e um painel mais próximo de dashboard, com visão geral
+                sem expor quem entrevistou e visão individual por entrevistador.
               </p>
             </Card>
 
@@ -471,10 +576,14 @@ export default function App() {
                   onClick={() => {
                     setReportPasswordInput("");
                     setReportUnlocked(false);
+                    setReportMode("geral");
+                    setSelectedInterviewer("");
+                    setSelectedApplication("");
+                    setSearchTerm("");
                     setScreen("reports");
                   }}
                 >
-                  Relatórios
+                  Dashboard e relatórios
                 </SecondaryButton>
               </div>
             </Card>
@@ -488,20 +597,17 @@ export default function App() {
                     gap: 12,
                   }}
                 >
-                  <div style={{ background: "#09090b", borderRadius: 14, padding: 14 }}>
-                    <div style={{ color: "#a1a1aa", fontSize: 13 }}>Respostas</div>
-                    <div style={{ fontSize: 28, fontWeight: 700 }}>{records.length}</div>
-                  </div>
-                  <div style={{ background: "#09090b", borderRadius: 14, padding: 14 }}>
-                    <div style={{ color: "#a1a1aa", fontSize: 13 }}>Sugestões</div>
-                    <div style={{ fontSize: 28, fontWeight: 700 }}>
-                      {records.filter((r) => r.suggestion?.trim()).length}
-                    </div>
-                  </div>
-                  <div style={{ background: "#09090b", borderRadius: 14, padding: 14 }}>
-                    <div style={{ color: "#a1a1aa", fontSize: 13 }}>Entrevistadores</div>
-                    <div style={{ fontSize: 28, fontWeight: 700 }}>{interviewerGroups.length}</div>
-                  </div>
+                  <MetricCard title="Pesquisas" value={records.length} subtitle="Total registrado" />
+                  <MetricCard
+                    title="Entrevistadores"
+                    value={interviewerGroups.length}
+                    subtitle="Com atividade registrada"
+                  />
+                  <MetricCard
+                    title="Aplicações"
+                    value={new Set(records.map((r) => r.respondent.aplicacaoPneu || "-")).size}
+                    subtitle="Tipos mapeados"
+                  />
                 </div>
               </Card>
             )}
@@ -510,7 +616,7 @@ export default function App() {
 
         {screen === "identify" && (
           <Card>
-            <h2 style={{ marginTop: 0 }}>Identificação</h2>
+            <h2 style={{ marginTop: 0 }}>Nova pesquisa</h2>
             <div
               style={{
                 display: "grid",
@@ -541,15 +647,15 @@ export default function App() {
                   onChange={(e) => setRespondent({ ...respondent, nome: e.target.value })}
                 />
                 <Field
+                  label="Celular"
+                  value={respondent.celular}
+                  onChange={(e) => setRespondent({ ...respondent, celular: e.target.value })}
+                />
+                <Field
                   label="E-mail"
                   value={respondent.email}
                   onChange={(e) => setRespondent({ ...respondent, email: e.target.value })}
                   type="email"
-                />
-                <Field
-                  label="Celular"
-                  value={respondent.celular}
-                  onChange={(e) => setRespondent({ ...respondent, celular: e.target.value })}
                 />
                 <Field
                   label="Tipo de caminhão"
@@ -571,9 +677,7 @@ export default function App() {
                 <Field
                   label="Principal fornecedor hoje"
                   value={respondent.fornecedorPrincipal}
-                  onChange={(e) =>
-                    setRespondent({ ...respondent, fornecedorPrincipal: e.target.value })
-                  }
+                  onChange={(e) => setRespondent({ ...respondent, fornecedorPrincipal: e.target.value })}
                 />
               </div>
             </div>
@@ -680,9 +784,9 @@ export default function App() {
           <>
             {!reportUnlocked ? (
               <Card>
-                <h2 style={{ marginTop: 0 }}>Acesso aos relatórios</h2>
+                <h2 style={{ marginTop: 0 }}>Acesso ao dashboard</h2>
                 <p style={{ color: "#a1a1aa" }}>
-                  Área protegida por senha para leitura dos resultados.
+                  Área protegida por senha. A visão geral preserva a privacidade dos entrevistadores.
                 </p>
                 <Field
                   label="Senha de acesso"
@@ -698,12 +802,86 @@ export default function App() {
             ) : (
               <>
                 <Card>
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    <SecondaryButton onClick={() => setScreen("home")}>Voltar</SecondaryButton>
-                    <PrimaryButton onClick={exportDetailedCsv}>Exportar detalhado</PrimaryButton>
-                    <SecondaryButton onClick={exportSummaryCsv}>Exportar resumo</SecondaryButton>
-                    <SecondaryButton onClick={exportSuggestionsCsv}>Exportar sugestões</SecondaryButton>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "space-between" }}>
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                      <SecondaryButton onClick={() => setScreen("home")}>Voltar</SecondaryButton>
+                      <PrimaryButton onClick={exportDetailedCsv}>Exportar detalhado</PrimaryButton>
+                      <SecondaryButton onClick={exportSummaryCsv}>Exportar resumo</SecondaryButton>
+                      <SecondaryButton onClick={exportSuggestionsCsv}>Exportar sugestões</SecondaryButton>
+                    </div>
+                    <div style={{ color: "#a1a1aa", fontSize: 14, alignSelf: "center" }}>
+                      {reportMode === "geral"
+                        ? "Visão geral com identidade preservada"
+                        : "Visão individual do entrevistador"}
+                    </div>
                   </div>
+                </Card>
+
+                <Card>
+                  <h2 style={{ marginTop: 0 }}>Filtros do dashboard</h2>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                      gap: 16,
+                    }}
+                  >
+                    <SelectField
+                      label="Modo de visualização"
+                      value={reportMode}
+                      onChange={(e) => {
+                        setReportMode(e.target.value);
+                        if (e.target.value === "geral") setSelectedInterviewer("");
+                      }}
+                      options={["geral", "entrevistador"]}
+                    />
+                    {reportMode === "entrevistador" && (
+                      <SelectField
+                        label="Entrevistador"
+                        value={selectedInterviewer}
+                        onChange={(e) => setSelectedInterviewer(e.target.value)}
+                        options={interviewerGroups}
+                      />
+                    )}
+                    <SelectField
+                      label="Aplicação do pneu"
+                      value={selectedApplication}
+                      onChange={(e) => setSelectedApplication(e.target.value)}
+                      options={TIRE_APPLICATIONS}
+                    />
+                    <Field
+                      label="Buscar lead"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder="Nome, celular, e-mail ou medida"
+                    />
+                  </div>
+                </Card>
+
+                <Card>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                      gap: 12,
+                    }}
+                  >
+                    <MetricCard title="Pesquisas filtradas" value={dashboardSummary.total} subtitle="Base atual" />
+                    <MetricCard title="Média geral" value={dashboardSummary.avg} subtitle="Das respostas filtradas" />
+                    <MetricCard
+                      title={reportMode === "geral" ? "Entrevistadores ativos" : "Lead(s) entrevistado(s)"}
+                      value={reportMode === "geral" ? dashboardSummary.interviewers : dashboardSummary.total}
+                      subtitle={reportMode === "geral" ? "Sem expor nomes" : "Do entrevistador selecionado"}
+                    />
+                    <MetricCard title="Aplicação mais frequente" value={dashboardSummary.topApplication} />
+                  </div>
+                </Card>
+
+                <Card>
+                  <h2 style={{ marginTop: 0 }}>
+                    {reportMode === "geral" ? "Leads entrevistados" : "Minhas entrevistas"}
+                  </h2>
+                  <SimpleTable rows={filteredRecords} hideInterviewer={reportMode === "geral"} />
                 </Card>
 
                 <Card>
@@ -725,29 +903,12 @@ export default function App() {
                 </Card>
 
                 <Card>
-                  <h2 style={{ marginTop: 0 }}>Respostas por entrevistador</h2>
-                  {interviewerGroups.map((name) => {
-                    const interviewerRecords = records.filter(
-                      (r) => (r.interviewer?.nome || "Não informado") === name
-                    );
-                    return (
-                      <div key={name} style={{ borderTop: "1px solid #27272a", padding: "14px 0" }}>
-                        <div style={{ fontWeight: 700 }}>{name}</div>
-                        <div style={{ color: "#a1a1aa", fontSize: 14, marginTop: 4 }}>
-                          Total de entrevistas: {interviewerRecords.length}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </Card>
-
-                <Card>
-                  <h2 style={{ marginTop: 0 }}>Sugestões</h2>
-                  {records.filter((r) => r.suggestion?.trim()).length === 0 && (
-                    <p style={{ color: "#a1a1aa" }}>Ainda não há sugestões registradas.</p>
+                  <h2 style={{ marginTop: 0 }}>Sugestões captadas</h2>
+                  {filteredRecords.filter((r) => r.suggestion?.trim()).length === 0 && (
+                    <p style={{ color: "#a1a1aa" }}>Ainda não há sugestões registradas com os filtros atuais.</p>
                   )}
 
-                  {records
+                  {filteredRecords
                     .filter((r) => r.suggestion?.trim())
                     .map((record) => (
                       <div
@@ -759,10 +920,10 @@ export default function App() {
                       >
                         <div style={{ fontWeight: 600 }}>{record.respondent.nome}</div>
                         <div style={{ color: "#a1a1aa", fontSize: 13, margin: "4px 0 6px" }}>
-                          Entrevistador: {record.interviewer?.nome || "Não informado"} • {record.createdAt}
+                          {reportMode === "geral" ? "Entrevistador: Oculto" : `Entrevistador: ${record.interviewer?.nome || "-"}`} • {record.createdAt}
                         </div>
                         <div style={{ color: "#d4d4d8", fontSize: 14, marginBottom: 6 }}>
-                          Aplicação: {record.respondent.aplicacaoPneu || "-"}
+                          Aplicação: {record.respondent.aplicacaoPneu || "-"} • Medida: {record.respondent.tipoPneu || "-"}
                         </div>
                         <div style={{ lineHeight: 1.6 }}>{record.suggestion}</div>
                       </div>
