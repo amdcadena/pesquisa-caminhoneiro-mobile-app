@@ -25,6 +25,12 @@ const QUESTIONS = [
 ];
 
 const STORAGE_KEY = "pesquisa-caminhoneiro-web";
+const REPORT_PASSWORD = "magnum123";
+
+const emptyInterviewer = {
+  nome: "",
+  email: "",
+};
 
 const emptyRespondent = {
   nome: "",
@@ -43,9 +49,9 @@ function downloadCsv(filename, rows) {
         .map((cell) => `"${String(cell ?? "").replaceAll('"', '""')}"`)
         .join(",")
     )
-    .join("\n");
+.join("\n");
 
-  const blob = new Blob(["\ufeff" + csv], {
+  const blob = new Blob(["﻿" + csv], {
     type: "text/csv;charset=utf-8;",
   });
 
@@ -57,11 +63,14 @@ function downloadCsv(filename, rows) {
 
 export default function App() {
   const [screen, setScreen] = useState("home");
+  const [interviewer, setInterviewer] = useState(emptyInterviewer);
   const [respondent, setRespondent] = useState(emptyRespondent);
   const [answers, setAnswers] = useState(Array(QUESTIONS.length).fill(""));
   const [questionIndex, setQuestionIndex] = useState(0);
   const [suggestion, setSuggestion] = useState("");
   const [records, setRecords] = useState([]);
+  const [reportPasswordInput, setReportPasswordInput] = useState("");
+  const [reportUnlocked, setReportUnlocked] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -102,6 +111,7 @@ export default function App() {
   }, [records]);
 
   function resetSurvey() {
+    setInterviewer(emptyInterviewer);
     setRespondent(emptyRespondent);
     setAnswers(Array(QUESTIONS.length).fill(""));
     setQuestionIndex(0);
@@ -109,6 +119,10 @@ export default function App() {
   }
 
   function startSurvey() {
+    if (!interviewer.nome.trim()) {
+      alert("Preencha o nome do entrevistador.");
+      return;
+    }
     if (!respondent.nome.trim()) {
       alert("Preencha o nome do caminhoneiro.");
       return;
@@ -144,6 +158,7 @@ export default function App() {
 
     const record = {
       id: Date.now(),
+      interviewer,
       respondent,
       answers,
       suggestion,
@@ -157,6 +172,14 @@ export default function App() {
     setScreen("home");
   }
 
+  function unlockReports() {
+    if (reportPasswordInput !== REPORT_PASSWORD) {
+      alert("Senha incorreta.");
+      return;
+    }
+    setReportUnlocked(true);
+  }
+
   function exportDetailedCsv() {
     if (!records.length) {
       alert("Ainda não há respostas para exportar.");
@@ -164,8 +187,10 @@ export default function App() {
     }
 
     const headers = [
-      "Nome",
-      "E-mail",
+      "Entrevistador",
+      "E-mail entrevistador",
+      "Nome caminhoneiro",
+      "E-mail caminhoneiro",
       "Celular",
       "Tipo de caminhão",
       "Tipo de pneu",
@@ -181,6 +206,8 @@ export default function App() {
     ];
 
     const rows = records.map((record) => [
+      record.interviewer?.nome || "",
+      record.interviewer?.email || "",
       record.respondent.nome,
       record.respondent.email,
       record.respondent.celular,
@@ -233,8 +260,10 @@ export default function App() {
 
     const rows = [
       [
-        "Nome",
-        "E-mail",
+        "Entrevistador",
+        "E-mail entrevistador",
+        "Nome caminhoneiro",
+        "E-mail caminhoneiro",
         "Celular",
         "Tipo de caminhão",
         "Tipo de pneu",
@@ -244,6 +273,8 @@ export default function App() {
         "Sugestão",
       ],
       ...suggestions.map((record) => [
+        record.interviewer?.nome || "",
+        record.interviewer?.email || "",
         record.respondent.nome,
         record.respondent.email,
         record.respondent.celular,
@@ -318,16 +349,19 @@ export default function App() {
     );
   }
 
-  function Field({ label, value, onChange, placeholder = "" }) {
+  function Field({ label, value, onChange, placeholder = "", type = "text" }) {
     return (
       <div style={{ marginBottom: 14 }}>
         <label style={{ display: "block", marginBottom: 6, color: "#d4d4d8", fontSize: 14 }}>
           {label}
         </label>
         <input
+          type={type}
           value={value}
           onChange={onChange}
           placeholder={placeholder}
+          autoComplete="off"
+          spellCheck={false}
           style={{
             width: "100%",
             height: 46,
@@ -337,6 +371,7 @@ export default function App() {
             color: "white",
             padding: "0 14px",
             fontSize: 15,
+            outline: "none",
           }}
         />
       </div>
@@ -354,7 +389,7 @@ export default function App() {
     >
       <div
         style={{
-          maxWidth: 760,
+          maxWidth: 900,
           margin: "0 auto",
         }}
       >
@@ -370,17 +405,21 @@ export default function App() {
             <Card>
               <h2 style={{ marginTop: 0 }}>O que esta pesquisa faz</h2>
               <p style={{ color: "#d4d4d8", lineHeight: 1.6 }}>
-                Coleta a percepção do caminhoneiro sobre as funcionalidades pensadas para o app,
-                guarda os dados localmente no navegador e permite exportar relatórios em CSV.
+                Coleta a percepção do caminhoneiro sobre as funcionalidades pensadas para o app, guarda os
+                dados localmente no navegador e permite exportar relatórios em CSV.
               </p>
             </Card>
 
             <Card>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <PrimaryButton onClick={() => setScreen("identify")}>
-                  Nova pesquisa
-                </PrimaryButton>
-                <SecondaryButton onClick={() => setScreen("reports")}>
+                <PrimaryButton onClick={() => setScreen("identify")}>Nova pesquisa</PrimaryButton>
+                <SecondaryButton
+                  onClick={() => {
+                    setReportPasswordInput("");
+                    setReportUnlocked(false);
+                    setScreen("reports");
+                  }}
+                >
                   Relatórios
                 </SecondaryButton>
               </div>
@@ -391,7 +430,7 @@ export default function App() {
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
                     gap: 12,
                   }}
                 >
@@ -405,6 +444,12 @@ export default function App() {
                       {records.filter((r) => r.suggestion?.trim()).length}
                     </div>
                   </div>
+                  <div style={{ background: "#09090b", borderRadius: 14, padding: 14 }}>
+                    <div style={{ color: "#a1a1aa", fontSize: 13 }}>Entrevistadores</div>
+                    <div style={{ fontSize: 28, fontWeight: 700 }}>
+                      {new Set(records.map((r) => r.interviewer?.nome || "Não informado")).size}
+                    </div>
+                  </div>
                 </div>
               </Card>
             )}
@@ -413,44 +458,71 @@ export default function App() {
 
         {screen === "identify" && (
           <Card>
-            <h2 style={{ marginTop: 0 }}>Dados do caminhoneiro</h2>
-            <Field
-              label="Nome do caminhoneiro *"
-              value={respondent.nome}
-              onChange={(e) => setRespondent({ ...respondent, nome: e.target.value })}
-            />
-            <Field
-              label="E-mail"
-              value={respondent.email}
-              onChange={(e) => setRespondent({ ...respondent, email: e.target.value })}
-            />
-            <Field
-              label="Celular"
-              value={respondent.celular}
-              onChange={(e) => setRespondent({ ...respondent, celular: e.target.value })}
-            />
-            <Field
-              label="Tipo de caminhão"
-              value={respondent.tipoCaminhao}
-              onChange={(e) => setRespondent({ ...respondent, tipoCaminhao: e.target.value })}
-            />
-            <Field
-              label="Tipo / medida do pneu"
-              value={respondent.tipoPneu}
-              onChange={(e) => setRespondent({ ...respondent, tipoPneu: e.target.value })}
-            />
-            <Field
-              label="Média de km por mês"
-              value={respondent.mediaKmMes}
-              onChange={(e) => setRespondent({ ...respondent, mediaKmMes: e.target.value })}
-            />
-            <Field
-              label="Principal fornecedor hoje"
-              value={respondent.fornecedorPrincipal}
-              onChange={(e) =>
-                setRespondent({ ...respondent, fornecedorPrincipal: e.target.value })
-              }
-            />
+            <h2 style={{ marginTop: 0 }}>Identificação</h2>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                gap: 16,
+              }}
+            >
+              <div>
+                <h3 style={{ marginTop: 0, marginBottom: 12, color: "#f4f4f5" }}>Entrevistador</h3>
+                <Field
+                  label="Nome do entrevistador *"
+                  value={interviewer.nome}
+                  onChange={(e) => setInterviewer({ ...interviewer, nome: e.target.value })}
+                />
+                <Field
+                  label="E-mail do entrevistador"
+                  value={interviewer.email}
+                  onChange={(e) => setInterviewer({ ...interviewer, email: e.target.value })}
+                  type="email"
+                />
+              </div>
+
+              <div>
+                <h3 style={{ marginTop: 0, marginBottom: 12, color: "#f4f4f5" }}>Caminhoneiro</h3>
+                <Field
+                  label="Nome do caminhoneiro *"
+                  value={respondent.nome}
+                  onChange={(e) => setRespondent({ ...respondent, nome: e.target.value })}
+                />
+                <Field
+                  label="E-mail"
+                  value={respondent.email}
+                  onChange={(e) => setRespondent({ ...respondent, email: e.target.value })}
+                  type="email"
+                />
+                <Field
+                  label="Celular"
+                  value={respondent.celular}
+                  onChange={(e) => setRespondent({ ...respondent, celular: e.target.value })}
+                />
+                <Field
+                  label="Tipo de caminhão"
+                  value={respondent.tipoCaminhao}
+                  onChange={(e) => setRespondent({ ...respondent, tipoCaminhao: e.target.value })}
+                />
+                <Field
+                  label="Tipo / medida do pneu"
+                  value={respondent.tipoPneu}
+                  onChange={(e) => setRespondent({ ...respondent, tipoPneu: e.target.value })}
+                />
+                <Field
+                  label="Média de km por mês"
+                  value={respondent.mediaKmMes}
+                  onChange={(e) => setRespondent({ ...respondent, mediaKmMes: e.target.value })}
+                />
+                <Field
+                  label="Principal fornecedor hoje"
+                  value={respondent.fornecedorPrincipal}
+                  onChange={(e) =>
+                    setRespondent({ ...respondent, fornecedorPrincipal: e.target.value })
+                  }
+                />
+              </div>
+            </div>
 
             <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
               <SecondaryButton onClick={() => setScreen("home")}>Voltar</SecondaryButton>
@@ -514,10 +586,7 @@ export default function App() {
             </div>
 
             <div style={{ display: "flex", gap: 10, marginTop: 18, flexWrap: "wrap" }}>
-              <SecondaryButton
-                onClick={previousQuestion}
-                disabled={questionIndex === 0}
-              >
+              <SecondaryButton onClick={previousQuestion} disabled={questionIndex === 0}>
                 Anterior
               </SecondaryButton>
               <PrimaryButton onClick={nextQuestion}>Próxima</PrimaryButton>
@@ -555,57 +624,93 @@ export default function App() {
 
         {screen === "reports" && (
           <>
-            <Card>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <SecondaryButton onClick={() => setScreen("home")}>Voltar</SecondaryButton>
-                <PrimaryButton onClick={exportDetailedCsv}>Exportar detalhado</PrimaryButton>
-                <SecondaryButton onClick={exportSummaryCsv}>Exportar resumo</SecondaryButton>
-                <SecondaryButton onClick={exportSuggestionsCsv}>Exportar sugestões</SecondaryButton>
-              </div>
-            </Card>
-
-            <Card>
-              <h2 style={{ marginTop: 0 }}>Resumo por pergunta</h2>
-              {summary.map((item, index) => (
-                <div
-                  key={index}
-                  style={{
-                    borderTop: index === 0 ? "none" : "1px solid #27272a",
-                    padding: "14px 0",
-                  }}
-                >
-                  <div style={{ fontWeight: 600, marginBottom: 8 }}>{item.question}</div>
-                  <div style={{ color: "#d4d4d8", fontSize: 14 }}>
-                    Média: {item.average} | Total: {item.total} | Excelente: {item.excelente} | Bom: {item.bom} | Razoável: {item.razoavel} | Pouco útil: {item.poucoUtil} | Inútil: {item.inutil}
-                  </div>
+            {!reportUnlocked ? (
+              <Card>
+                <h2 style={{ marginTop: 0 }}>Acesso aos relatórios</h2>
+                <p style={{ color: "#a1a1aa" }}>
+                  Área protegida por senha para leitura dos resultados.
+                </p>
+                <Field
+                  label="Senha de acesso"
+                  value={reportPasswordInput}
+                  onChange={(e) => setReportPasswordInput(e.target.value)}
+                  type="password"
+                />
+                <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
+                  <SecondaryButton onClick={() => setScreen("home")}>Voltar</SecondaryButton>
+                  <PrimaryButton onClick={unlockReports}>Entrar</PrimaryButton>
                 </div>
-              ))}
-            </Card>
-
-            <Card>
-              <h2 style={{ marginTop: 0 }}>Sugestões</h2>
-              {records.filter((r) => r.suggestion?.trim()).length === 0 && (
-                <p style={{ color: "#a1a1aa" }}>Ainda não há sugestões registradas.</p>
-              )}
-
-              {records
-                .filter((r) => r.suggestion?.trim())
-                .map((record) => (
-                  <div
-                    key={record.id}
-                    style={{
-                      borderTop: "1px solid #27272a",
-                      padding: "14px 0",
-                    }}
-                  >
-                    <div style={{ fontWeight: 600 }}>{record.respondent.nome}</div>
-                    <div style={{ color: "#a1a1aa", fontSize: 13, margin: "4px 0 8px" }}>
-                      {record.createdAt}
-                    </div>
-                    <div style={{ lineHeight: 1.6 }}>{record.suggestion}</div>
+              </Card>
+            ) : (
+              <>
+                <Card>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <SecondaryButton onClick={() => setScreen("home")}>Voltar</SecondaryButton>
+                    <PrimaryButton onClick={exportDetailedCsv}>Exportar detalhado</PrimaryButton>
+                    <SecondaryButton onClick={exportSummaryCsv}>Exportar resumo</SecondaryButton>
+                    <SecondaryButton onClick={exportSuggestionsCsv}>Exportar sugestões</SecondaryButton>
                   </div>
-                ))}
-            </Card>
+                </Card>
+
+                <Card>
+                  <h2 style={{ marginTop: 0 }}>Resumo por pergunta</h2>
+                  {summary.map((item, index) => (
+                    <div
+                      key={index}
+                      style={{
+                        borderTop: index === 0 ? "none" : "1px solid #27272a",
+                        padding: "14px 0",
+                      }}
+                    >
+                      <div style={{ fontWeight: 600, marginBottom: 8 }}>{item.question}</div>
+                      <div style={{ color: "#d4d4d8", fontSize: 14 }}>
+                        Média: {item.average} | Total: {item.total} | Excelente: {item.excelente} | Bom: {item.bom} | Razoável: {item.razoavel} | Pouco útil: {item.poucoUtil} | Inútil: {item.inutil}
+                      </div>
+                    </div>
+                  ))}
+                </Card>
+
+                <Card>
+                  <h2 style={{ marginTop: 0 }}>Respostas por entrevistador</h2>
+                  {Array.from(new Set(records.map((r) => r.interviewer?.nome || "Não informado"))).map((name) => {
+                    const interviewerRecords = records.filter((r) => (r.interviewer?.nome || "Não informado") === name);
+                    return (
+                      <div key={name} style={{ borderTop: "1px solid #27272a", padding: "14px 0" }}>
+                        <div style={{ fontWeight: 700 }}>{name}</div>
+                        <div style={{ color: "#a1a1aa", fontSize: 14, marginTop: 4 }}>
+                          Total de entrevistas: {interviewerRecords.length}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </Card>
+
+                <Card>
+                  <h2 style={{ marginTop: 0 }}>Sugestões</h2>
+                  {records.filter((r) => r.suggestion?.trim()).length === 0 && (
+                    <p style={{ color: "#a1a1aa" }}>Ainda não há sugestões registradas.</p>
+                  )}
+
+                  {records
+                    .filter((r) => r.suggestion?.trim())
+                    .map((record) => (
+                      <div
+                        key={record.id}
+                        style={{
+                          borderTop: "1px solid #27272a",
+                          padding: "14px 0",
+                        }}
+                      >
+                        <div style={{ fontWeight: 600 }}>{record.respondent.nome}</div>
+                        <div style={{ color: "#a1a1aa", fontSize: 13, margin: "4px 0 6px" }}>
+                          Entrevistador: {record.interviewer?.nome || "Não informado"} • {record.createdAt}
+                        </div>
+                        <div style={{ lineHeight: 1.6 }}>{record.suggestion}</div>
+                      </div>
+                    ))}
+                </Card>
+              </>
+            )}
           </>
         )}
       </div>
