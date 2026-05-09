@@ -151,21 +151,52 @@ export default function App() {
     }
   }
 
-  function finishSurvey() {
-    const average = (
-      answers.reduce((sum, answer) => sum + (SCORE_MAP[answer] || 0), 0) /
-      QUESTIONS.length
-    ).toFixed(2);
+  async function finishSurvey() {
+  const average = (
+    answers.reduce((sum, answer) => sum + (SCORE_MAP[answer] || 0), 0) /
+    QUESTIONS.length
+  ).toFixed(2);
 
-    const record = {
-      id: Date.now(),
-      interviewer,
-      respondent,
-      answers,
-      suggestion,
-      average,
-      createdAt: new Date().toLocaleString("pt-BR"),
-    };
+  const record = {
+    id: Date.now(),
+    interviewer,
+    respondent,
+    answers,
+    suggestion,
+    average,
+    createdAt: new Date().toLocaleString("pt-BR"),
+  };
+
+  const payload = {
+    entrevistador_nome: interviewer.nome,
+    entrevistador_email: interviewer.email,
+    entrevistado_nome: respondent.nome,
+    entrevistado_email: respondent.email,
+    entrevistado_celular: respondent.celular,
+    tipo_caminhao: respondent.tipoCaminhao,
+    medida_pneu: respondent.tipoPneu,
+    aplicacao_pneu: respondent.aplicacaoPneu,
+    fornecedor_principal: respondent.fornecedorPrincipal,
+    respostas: answers,
+    sugestao: suggestion,
+    media_geral: Number(average),
+    status: "concluida",
+  };
+
+  const { error } = await supabase
+    .from("pesquisas_caminhoneiro")
+    .insert([payload]);
+
+  if (error) {
+    alert("Erro ao salvar no Supabase: " + error.message);
+    return;
+  }
+
+  setRecords((prev) => [record, ...prev]);
+  alert(`Pesquisa salva com sucesso para ${respondent.nome}. Média geral: ${average}`);
+  resetSurvey();
+  setScreen("home");
+}
 
     setRecords((prev) => [record, ...prev]);
     alert(`Pesquisa salva com sucesso para ${respondent.nome}. Média geral: ${average}`);
