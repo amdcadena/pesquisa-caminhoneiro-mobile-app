@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { supabase } from "./supabaseClient";
 
 const OPTIONS = ["Excelente", "Bom", "Razoável", "Pouco útil", "Inútil"];
 
@@ -273,6 +274,60 @@ export default function App() {
   const [selectedInterviewer, setSelectedInterviewer] = useState("");
   const [selectedApplication, setSelectedApplication] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+const [authUser, setAuthUser] = useState(null);
+const [loginEmail, setLoginEmail] = useState("");
+const [loginPassword, setLoginPassword] = useState("");
+const [authLoading, setAuthLoading] = useState(true);
+  // useState
+
+  // useEffect
+
+  
+async function handleLogin() {
+  const { error } = await supabase.auth.signInWithPassword({
+    email: loginEmail,
+    password: loginPassword,
+  });
+
+  if (error) {
+    alert("Erro no login: " + error.message);
+    return;
+  }
+
+  alert("Login realizado com sucesso.");
+}
+
+async function handleLogout() {
+  const { error } = await supabase.auth.signOut();
+
+  if (error) {
+    alert("Erro ao sair: " + error.message);
+    return;
+  }
+
+  alert("Sessão encerrada.");
+}
+ 
+if (authLoading) {
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#09090b",
+        color: "white",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: 18,
+      }}
+    >
+      Carregando acesso...
+    </div>
+  );
+}
+
+
+  
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -284,6 +339,42 @@ export default function App() {
       }
     }
   }, []);
+  useEffect(() => {
+  async function loadSession() {
+    const { data } = await supabase.auth.getSession();
+    setAuthUser(data?.session?.user ?? null);
+    setAuthLoading(false);
+  }
+
+  loadSession();
+
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange((_event, session) => {
+    setAuthUser(session?.user ?? null);
+    setAuthLoading(false);
+  });
+
+  return () => subscription.unsubscribe();
+}, []);
+  useEffect(() => {
+  async function loadSession() {
+    const { data } = await supabase.auth.getSession();
+    setAuthUser(data?.session?.user ?? null);
+    setAuthLoading(false);
+  }
+
+  loadSession();
+
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange((_event, session) => {
+    setAuthUser(session?.user ?? null);
+    setAuthLoading(false);
+  });
+
+  return () => subscription.unsubscribe();
+}, []);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
