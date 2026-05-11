@@ -339,11 +339,27 @@ if (authLoading) {
       }
     }
   }, []);
-  useEffect(() => {
+useEffect(() => {
+  let mounted = true;
+
   async function loadSession() {
-    const { data } = await supabase.auth.getSession();
-    setAuthUser(data?.session?.user ?? null);
-    setAuthLoading(false);
+    try {
+      const { data, error } = await supabase.auth.getSession();
+
+      if (error) {
+        console.error("Erro ao carregar sessão:", error.message);
+      }
+
+      if (mounted) {
+        setAuthUser(data?.session?.user ?? null);
+        setAuthLoading(false);
+      }
+    } catch (err) {
+      console.error("Falha ao carregar sessão:", err);
+      if (mounted) {
+        setAuthLoading(false);
+      }
+    }
   }
 
   loadSession();
@@ -351,11 +367,16 @@ if (authLoading) {
   const {
     data: { subscription },
   } = supabase.auth.onAuthStateChange((_event, session) => {
-    setAuthUser(session?.user ?? null);
-    setAuthLoading(false);
+    if (mounted) {
+      setAuthUser(session?.user ?? null);
+      setAuthLoading(false);
+    }
   });
 
-  return () => subscription.unsubscribe();
+  return () => {
+    mounted = false;
+    subscription.unsubscribe();
+  };
 }, []);
   useEffect(() => {
   async function loadSession() {
