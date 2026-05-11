@@ -307,29 +307,7 @@ async function handleLogout() {
 
   alert("Sessão encerrada.");
 }
- 
-if (authLoading) {
-  return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#09090b",
-        color: "white",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: 18,
-      }}
-    >
-      Carregando acesso...
-    </div>
-  );
-}
-
-
-  
-
-  useEffect(() => {
+   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
@@ -391,6 +369,24 @@ useEffect(() => {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
   }, [records]);
+  
+  if (authLoading) {
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#09090b",
+        color: "white",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: 18,
+      }}
+    >
+      Carregando acesso...
+    </div>
+  );
+}
 
   const progress = ((questionIndex + 1) / QUESTIONS.length) * 100;
 
