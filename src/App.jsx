@@ -387,7 +387,9 @@ export default function App() {
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
-  }, [records]);  if (authLoading) {
+  }, [records]);  
+  
+  if (authLoading) {
     return (
       <div
         style={{
