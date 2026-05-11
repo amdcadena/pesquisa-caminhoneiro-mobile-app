@@ -378,24 +378,7 @@ useEffect(() => {
     subscription.unsubscribe();
   };
 }, []);
-  useEffect(() => {
-  async function loadSession() {
-    const { data } = await supabase.auth.getSession();
-    setAuthUser(data?.session?.user ?? null);
-    setAuthLoading(false);
-  }
 
-  loadSession();
-
-  const {
-    data: { subscription },
-  } = supabase.auth.onAuthStateChange((_event, session) => {
-    setAuthUser(session?.user ?? null);
-    setAuthLoading(false);
-  });
-
-  return () => subscription.unsubscribe();
-}, []);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
