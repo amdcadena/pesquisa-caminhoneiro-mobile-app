@@ -342,6 +342,13 @@ if (authLoading) {
 useEffect(() => {
   let mounted = true;
 
+  const timeout = setTimeout(() => {
+    if (mounted) {
+      console.warn("Timeout ao carregar sessão. Liberando tela de login.");
+      setAuthLoading(false);
+    }
+  }, 3000);
+
   async function loadSession() {
     try {
       const { data, error } = await supabase.auth.getSession();
@@ -375,6 +382,7 @@ useEffect(() => {
 
   return () => {
     mounted = false;
+    clearTimeout(timeout);
     subscription.unsubscribe();
   };
 }, []);
