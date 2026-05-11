@@ -26,15 +26,15 @@ const TIRE_APPLICATIONS = [
 ];
 
 const QUESTIONS = [
-  "O aplicativo para controle de pneus e manutenção do caminhão parece útil para sua rotina?",
-  "O quanto seria útil acompanhar a pressão dos pneus no aplicativo?",
-  "O quanto seria útil registrar e acompanhar o desgaste dos pneus?",
-  "O quanto seria útil receber alertas de manutenção preventiva?",
-  "O quanto seria útil preencher um checklist rápido antes de sair para viagem?",
-  "O quanto seria útil registrar trocas e rodízios de pneus?",
-  "O quanto seria útil receber alertas de situações críticas do caminhão ou dos pneus?",
-  "O quanto você considera importante que esse aplicativo exista no seu dia a dia?",
-  "Pela descrição das funções, você acredita que o aplicativo seria fácil de usar?",
+  "O quanto seria útil ter um aplicativo voltado à manutenção de pneus?",
+  "O que você acha da possibilidade de acompanhar a pressão dos pneus pelo aplicativo?",
+  "O que você acha de ter o controle do desgaste dos pneus dentro do aplicativo?",
+  "O quanto seria útil receber alertas relacionados à manutenção preventiva?",
+  "O que você acha de contar com uma lista rápida de checagem dos pneus antes das viagens?",
+  "O quanto seria útil registrar no aplicativo as trocas e os rodízios dos pneus?",
+  "Como você vê a possibilidade de receber uma versão do aplicativo para testes e uso, sem custos?",
+  "O quanto seria útil contar com o apoio de um profissional para orientar e tirar dúvidas sobre pneus?",
+  "O quanto você considera importante o uso das redes sociais para orientar caminhoneiros com vídeos e dicas sobre pneus?",
 ];
 
 const STORAGE_KEY = "pesquisa-caminhoneiro-web";
