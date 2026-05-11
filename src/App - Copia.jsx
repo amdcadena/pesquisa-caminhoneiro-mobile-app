@@ -1,0 +1,1042 @@
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "./supabaseClient";
+
+const OPTIONS = ["Excelente", "Bom", "Razoável", "Pouco útil", "Inútil"];
+
+const SCORE_MAP = {
+  Excelente: 5,
+  Bom: 4,
+  "Razoável": 3,
+  "Pouco útil": 2,
+  "Inútil": 1,
+};
+
+const TIRE_APPLICATIONS = [
+  "MA - Misto All Position",
+  "UA - Urbano All Position",
+  "RA - Regional All Position",
+  "GT - Regional Tração",
+  "OT - OTR",
+  "GD - Regional Direcional",
+  "MD - Misto Direcional",
+  "MT - Misto Tração",
+  "RL - Rodoviário Eixo Livre",
+  "RT - Rodoviário Tração",
+  "RD - Rodoviário Direcional",
+];
+
+const QUESTIONS = [
+  "O aplicativo para controle de pneus e manutenção do caminhão parece útil para sua rotina?",
+  "O quanto seria útil acompanhar a pressão dos pneus no aplicativo?",
+  "O quanto seria útil registrar e acompanhar o desgaste dos pneus?",
+  "O quanto seria útil receber alertas de manutenção preventiva?",
+  "O quanto seria útil preencher um checklist rápido antes de sair para viagem?",
+  "O quanto seria útil registrar trocas e rodízios de pneus?",
+  "O quanto seria útil receber alertas de situações críticas do caminhão ou dos pneus?",
+  "O quanto você considera importante que esse aplicativo exista no seu dia a dia?",
+  "Pela descrição das funções, você acredita que o aplicativo seria fácil de usar?",
+];
+
+const STORAGE_KEY = "pesquisa-caminhoneiro-web";
+const REPORT_PASSWORD = "magnum123";
+
+const emptyInterviewer = {
+  nome: "",
+  email: "",
+};
+
+const emptyRespondent = {
+  nome: "",
+  email: "",
+  celular: "",
+  tipoCaminhao: "",
+  tipoPneu: "",
+  aplicacaoPneu: "",
+  fornecedorPrincipal: "",
+};
+function formatPhone(value) {
+  const digits = value.replace(/\D/g, "").slice(0, 11);
+
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 7) return "(" + digits.slice(0, 2) + ") " + digits.slice(2);
+
+  return "(" + digits.slice(0, 2) + ") " + digits.slice(2, 7) + "-" + digits.slice(7, 11);
+}
+
+function downloadCsv(filename, rows) {
+  const csv = rows
+    .map((row) =>
+      row
+        .map((cell) => `"${String(cell ?? "").replaceAll('"', '""')}"`)
+        .join(",")
+    )
+    .join("\\n");
+
+  const blob = new Blob(["\\ufeff" + csv], {
+    type: "text/csv;charset=utf-8;",
+  });
+
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+}
+
+function Card({ children }) {
+  return (
+    <div
+      style={{
+        background: "#18181b",
+        border: "1px solid #27272a",
+        borderRadius: 20,
+        padding: 20,
+        marginBottom: 16,
+        boxShadow: "0 8px 30px rgba(0,0,0,0.25)",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function MetricCard({ title, value, subtitle = "" }) {
+  return (
+    <div
+      style={{
+        background: "#09090b",
+        border: "1px solid #27272a",
+        borderRadius: 16,
+        padding: 16,
+      }}
+    >
+      <div style={{ color: "#a1a1aa", fontSize: 13 }}>{title}</div>
+      <div style={{ fontSize: 28, fontWeight: 700, marginTop: 6 }}>{value}</div>
+      {subtitle ? <div style={{ color: "#d4d4d8", fontSize: 13, marginTop: 4 }}>{subtitle}</div> : null}
+    </div>
+  );
+}
+
+function PrimaryButton({ children, onClick, full = false }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        background: "#dc2626",
+        color: "white",
+        border: "none",
+        borderRadius: 14,
+        padding: "14px 18px",
+        fontSize: 16,
+        fontWeight: 600,
+        cursor: "pointer",
+        width: full ? "100%" : "auto",
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function SecondaryButton({ children, onClick, disabled = false }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        background: disabled ? "#18181b" : "#09090b",
+        color: disabled ? "#666" : "white",
+        border: "1px solid #3f3f46",
+        borderRadius: 14,
+        padding: "14px 18px",
+        fontSize: 16,
+        fontWeight: 600,
+        cursor: disabled ? "not-allowed" : "pointer",
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Field({ label, value, onChange, placeholder = "", type = "text" }) {
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <label style={{ display: "block", marginBottom: 6, color: "#d4d4d8", fontSize: 14 }}>
+        {label}
+      </label>
+      <input
+        type={type}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        autoComplete="off"
+        spellCheck={false}
+        style={{
+          width: "100%",
+          height: 46,
+          borderRadius: 14,
+          border: "1px solid #3f3f46",
+          background: "#09090b",
+          color: "white",
+          padding: "0 14px",
+          fontSize: 15,
+          outline: "none",
+        }}
+      />
+    </div>
+  );
+}
+
+function SelectField({ label, value, onChange, options }) {
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <label style={{ display: "block", marginBottom: 6, color: "#d4d4d8", fontSize: 14 }}>
+        {label}
+      </label>
+      <select
+        value={value}
+        onChange={onChange}
+        style={{
+          width: "100%",
+          height: 46,
+          borderRadius: 14,
+          border: "1px solid #3f3f46",
+          background: "#09090b",
+          color: "white",
+          padding: "0 14px",
+          fontSize: 15,
+          outline: "none",
+        }}
+      >
+        <option value="">Selecione</option>
+        {options.map((option) => (
+          <option key={option} value={option} style={{ color: "white", background: "#09090b" }}>
+            {option}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function SimpleTable({ rows, hideInterviewer = false }) {
+  if (!rows.length) {
+    return <p style={{ color: "#a1a1aa" }}>Nenhuma pesquisa encontrada com os filtros aplicados.</p>;
+  }
+
+  return (
+    <div style={{ overflowX: "auto" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+        <thead>
+          <tr style={{ color: "#a1a1aa", textAlign: "left", borderBottom: "1px solid #27272a" }}>
+            <th style={{ padding: "10px 8px" }}>Data</th>
+            <th style={{ padding: "10px 8px" }}>Entrevistado</th>
+            <th style={{ padding: "10px 8px" }}>Celular</th>
+            <th style={{ padding: "10px 8px" }}>E-mail</th>
+            <th style={{ padding: "10px 8px" }}>Medida</th>
+            <th style={{ padding: "10px 8px" }}>Aplicação</th>
+            {!hideInterviewer && <th style={{ padding: "10px 8px" }}>Entrevistador</th>}
+            <th style={{ padding: "10px 8px" }}>Média</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((record) => (
+            <tr key={record.id} style={{ borderBottom: "1px solid #27272a" }}>
+              <td style={{ padding: "10px 8px" }}>{record.createdAt}</td>
+              <td style={{ padding: "10px 8px" }}>{record.respondent.nome}</td>
+              <td style={{ padding: "10px 8px" }}>{record.respondent.celular || "-"}</td>
+              <td style={{ padding: "10px 8px" }}>{record.respondent.email || "-"}</td>
+              <td style={{ padding: "10px 8px" }}>{record.respondent.tipoPneu || "-"}</td>
+              <td style={{ padding: "10px 8px" }}>{record.respondent.aplicacaoPneu || "-"}</td>
+              {!hideInterviewer && (
+                <td style={{ padding: "10px 8px" }}>{record.interviewer?.nome || "Oculto"}</td>
+              )}
+              <td style={{ padding: "10px 8px" }}>{record.average}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+export default function App() {
+  const [screen, setScreen] = useState("home");
+  const [interviewer, setInterviewer] = useState(emptyInterviewer);
+  const [respondent, setRespondent] = useState(emptyRespondent);
+  const [answers, setAnswers] = useState(Array(QUESTIONS.length).fill(""));
+  const [questionIndex, setQuestionIndex] = useState(0);
+  const [suggestion, setSuggestion] = useState("");
+  const [records, setRecords] = useState([]);
+  const [reportPasswordInput, setReportPasswordInput] = useState("");
+  const [reportUnlocked, setReportUnlocked] = useState(false);
+  const [reportMode, setReportMode] = useState("geral");
+  const [selectedInterviewer, setSelectedInterviewer] = useState("");
+  const [selectedApplication, setSelectedApplication] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+const [authUser, setAuthUser] = useState(null);
+const [loginEmail, setLoginEmail] = useState("");
+const [loginPassword, setLoginPassword] = useState("");
+const [authLoading, setAuthLoading] = useState(true);
+  // useState
+
+  // useEffect
+
+  
+async function handleLogin() {
+  const { error } = await supabase.auth.signInWithPassword({
+    email: loginEmail,
+    password: loginPassword,
+  });
+
+  if (error) {
+    alert("Erro no login: " + error.message);
+    return;
+  }
+
+  alert("Login realizado com sucesso.");
+}
+
+async function handleLogout() {
+  const { error } = await supabase.auth.signOut();
+
+  if (error) {
+    alert("Erro ao sair: " + error.message);
+    return;
+  }
+
+  alert("Sessão encerrada.");
+}
+ 
+if (authLoading) {
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#09090b",
+        color: "white",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: 18,
+      }}
+    >
+      Carregando acesso...
+    </div>
+  );
+}
+
+
+  
+
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        setRecords(JSON.parse(saved));
+      } catch {
+        setRecords([]);
+      }
+    }
+  }, []);
+useEffect(() => {
+  let mounted = true;
+
+  async function loadSession() {
+    try {
+      const { data, error } = await supabase.auth.getSession();
+
+      if (error) {
+        console.error("Erro ao carregar sessão:", error.message);
+      }
+
+      if (mounted) {
+        setAuthUser(data?.session?.user ?? null);
+        setAuthLoading(false);
+      }
+    } catch (err) {
+      console.error("Falha ao carregar sessão:", err);
+      if (mounted) {
+        setAuthLoading(false);
+      }
+    }
+  }
+
+  loadSession();
+
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange((_event, session) => {
+    if (mounted) {
+      setAuthUser(session?.user ?? null);
+      setAuthLoading(false);
+    }
+  });
+
+  return () => {
+    mounted = false;
+    subscription.unsubscribe();
+  };
+}, []);
+
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+  }, [records]);
+
+  const progress = ((questionIndex + 1) / QUESTIONS.length) * 100;
+
+  const interviewerGroups = useMemo(
+    () => Array.from(new Set(records.map((r) => r.interviewer?.nome || "Não informado"))).sort(),
+    [records]
+  );
+
+  const filteredRecords = useMemo(() => {
+    return records.filter((record) => {
+      const matchesApplication = selectedApplication
+        ? record.respondent.aplicacaoPneu === selectedApplication
+        : true;
+
+      const matchesSearch = searchTerm
+        ? [
+            record.respondent.nome,
+            record.respondent.celular,
+            record.respondent.email,
+            record.respondent.tipoPneu,
+            record.respondent.aplicacaoPneu,
+          ]
+            .join(" ")
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase())
+        : true;
+
+      if (reportMode === "entrevistador") {
+        const matchesInterviewer = selectedInterviewer
+          ? (record.interviewer?.nome || "Não informado") === selectedInterviewer
+          : true;
+        return matchesApplication && matchesSearch && matchesInterviewer;
+      }
+
+      return matchesApplication && matchesSearch;
+    });
+  }, [records, selectedApplication, selectedInterviewer, searchTerm, reportMode]);
+
+  const dashboardSummary = useMemo(() => {
+    const total = filteredRecords.length;
+    const avg = total
+      ? (
+          filteredRecords.reduce((sum, record) => sum + Number(record.average || 0), 0) / total
+        ).toFixed(2)
+      : "0.00";
+
+    const byApplication = {};
+    filteredRecords.forEach((record) => {
+      const key = record.respondent.aplicacaoPneu || "Não informado";
+      byApplication[key] = (byApplication[key] || 0) + 1;
+    });
+
+    const topApplication = Object.entries(byApplication).sort((a, b) => b[1] - a[1])[0];
+
+    return {
+      total,
+      avg,
+      interviewers: new Set(filteredRecords.map((r) => r.interviewer?.nome || "Não informado")).size,
+      topApplication: topApplication ? `${topApplication[0]} (${topApplication[1]})` : "-",
+    };
+  }, [filteredRecords]);
+
+  const summary = useMemo(() => {
+    return QUESTIONS.map((question, index) => {
+      const selectedAnswers = filteredRecords.map((r) => r.answers[index]).filter(Boolean);
+      const scores = selectedAnswers.map((a) => SCORE_MAP[a] || 0);
+      const average = scores.length
+        ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(2)
+        : "0.00";
+
+      return {
+        question,
+        total: selectedAnswers.length,
+        average,
+        excelente: selectedAnswers.filter((a) => a === "Excelente").length,
+        bom: selectedAnswers.filter((a) => a === "Bom").length,
+        razoavel: selectedAnswers.filter((a) => a === "Razoável").length,
+        poucoUtil: selectedAnswers.filter((a) => a === "Pouco útil").length,
+        inutil: selectedAnswers.filter((a) => a === "Inútil").length,
+      };
+    });
+  }, [filteredRecords]);
+
+  function resetSurvey() {
+    setInterviewer(emptyInterviewer);
+    setRespondent(emptyRespondent);
+    setAnswers(Array(QUESTIONS.length).fill(""));
+    setQuestionIndex(0);
+    setSuggestion("");
+  }
+
+  function startSurvey() {
+    if (!interviewer.nome.trim()) {
+      alert("Preencha o nome do entrevistador.");
+      return;
+    }
+    if (!respondent.nome.trim()) {
+      alert("Preencha o nome do entrevistado.");
+      return;
+    }
+    if (!respondent.aplicacaoPneu.trim()) {
+      alert("Selecione a aplicação do pneu.");
+      return;
+    }
+    setScreen("survey");
+  }
+
+  function nextQuestion() {
+    if (!answers[questionIndex]) {
+      alert("Escolha uma opção antes de continuar.");
+      return;
+    }
+
+    if (questionIndex === QUESTIONS.length - 1) {
+      setScreen("suggestion");
+      return;
+    }
+
+    setQuestionIndex((prev) => prev + 1);
+  }
+
+  function previousQuestion() {
+    if (questionIndex > 0) {
+      setQuestionIndex((prev) => prev - 1);
+    }
+  }
+
+  function finishSurvey() {
+    const average = (
+      answers.reduce((sum, answer) => sum + (SCORE_MAP[answer] || 0), 0) /
+      QUESTIONS.length
+    ).toFixed(2);
+
+    const record = {
+      id: Date.now(),
+      interviewer,
+      respondent,
+      answers,
+      suggestion,
+      average,
+      createdAt: new Date().toLocaleString("pt-BR"),
+    };
+
+    setRecords((prev) => [record, ...prev]);
+    alert(`Pesquisa salva com sucesso para ${respondent.nome}. Média geral: ${average}`);
+    resetSurvey();
+    setScreen("home");
+  }
+
+  function unlockReports() {
+    if (reportPasswordInput !== REPORT_PASSWORD) {
+      alert("Senha incorreta.");
+      return;
+    }
+    setReportUnlocked(true);
+  }
+
+  function exportDetailedCsv() {
+    if (!filteredRecords.length) {
+      alert("Ainda não há respostas para exportar.");
+      return;
+    }
+
+    const headers = [
+      "Entrevistador",
+      "E-mail entrevistador",
+      "Nome entrevistado",
+      "E-mail entrevistado",
+      "Celular",
+      "Tipo de caminhão",
+      "Medida do pneu",
+      "Aplicação do pneu",
+      "Fornecedor principal",
+      "Data",
+      "Sugestão",
+      ...QUESTIONS.flatMap((q, i) => [
+        `Pergunta ${i + 1}`,
+        `Resposta ${i + 1}`,
+        `Nota ${i + 1}`,
+      ]),
+    ];
+
+    const rows = filteredRecords.map((record) => [
+      reportMode === "geral" ? "Oculto" : record.interviewer?.nome || "",
+      reportMode === "geral" ? "Oculto" : record.interviewer?.email || "",
+      record.respondent.nome,
+      record.respondent.email,
+      record.respondent.celular,
+      record.respondent.tipoCaminhao,
+      record.respondent.tipoPneu,
+      record.respondent.aplicacaoPneu,
+      record.respondent.fornecedorPrincipal,
+      record.createdAt,
+      record.suggestion,
+      ...QUESTIONS.flatMap((q, i) => [
+        q,
+        record.answers[i] || "",
+        SCORE_MAP[record.answers[i]] || "",
+      ]),
+    ]);
+
+    downloadCsv("respostas_detalhadas.csv", [headers, ...rows]);
+  }
+
+  function exportSummaryCsv() {
+    if (!filteredRecords.length) {
+      alert("Ainda não há respostas para exportar.");
+      return;
+    }
+
+    const rows = [
+      ["Pergunta", "Total respostas", "Média", "Excelente", "Bom", "Razoável", "Pouco útil", "Inútil"],
+      ...summary.map((item) => [
+        item.question,
+        item.total,
+        item.average,
+        item.excelente,
+        item.bom,
+        item.razoavel,
+        item.poucoUtil,
+        item.inutil,
+      ]),
+    ];
+
+    downloadCsv("resumo_pesquisa.csv", rows);
+  }
+
+  function exportSuggestionsCsv() {
+    const suggestions = filteredRecords.filter((r) => r.suggestion?.trim());
+
+    if (!suggestions.length) {
+      alert("Ainda não há sugestões para exportar.");
+      return;
+    }
+
+    const rows = [
+      [
+        "Entrevistador",
+        "Nome entrevistado",
+        "Celular",
+        "E-mail",
+        "Medida do pneu",
+        "Aplicação do pneu",
+        "Data",
+        "Sugestão",
+      ],
+      ...suggestions.map((record) => [
+        reportMode === "geral" ? "Oculto" : record.interviewer?.nome || "",
+        record.respondent.nome,
+        record.respondent.celular,
+        record.respondent.email,
+        record.respondent.tipoPneu,
+        record.respondent.aplicacaoPneu,
+        record.createdAt,
+        record.suggestion,
+      ]),
+    ];
+
+    downloadCsv("sugestoes.csv", rows);
+  }
+
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#09090b",
+        color: "white",
+        padding: 16,
+      }}
+    >
+      <div style={{ maxWidth: 1000, margin: "0 auto" }}>
+        <div style={{ marginBottom: 20 }}>
+          <h1 style={{ margin: 0, fontSize: 30 }}>Pesquisa do Caminhoneiro</h1>
+          <p style={{ color: "#a1a1aa", marginTop: 6 }}>Fase 2.1 • Formulário + dashboard privado</p>
+        </div>
+
+        {screen === "home" && (
+          <>
+            <Card>
+              <h2 style={{ marginTop: 0 }}>O que esta fase traz</h2>
+              <p style={{ color: "#d4d4d8", lineHeight: 1.6 }}>
+                Inclusão da aplicação do pneu em seleção e um painel mais próximo de dashboard, com visão geral
+                sem expor quem entrevistou e visão individual por entrevistador.
+              </p>
+            </Card>
+
+            <Card>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <PrimaryButton onClick={() => setScreen("identify")}>Nova pesquisa</PrimaryButton>
+                <SecondaryButton
+                  onClick={() => {
+                    setReportPasswordInput("");
+                    setReportUnlocked(false);
+                    setReportMode("geral");
+                    setSelectedInterviewer("");
+                    setSelectedApplication("");
+                    setSearchTerm("");
+                    setScreen("reports");
+                  }}
+                >
+                  Dashboard e relatórios
+                </SecondaryButton>
+              </div>
+            </Card>
+
+            {records.length > 0 && (
+              <Card>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+                    gap: 12,
+                  }}
+                >
+                  <MetricCard title="Pesquisas" value={records.length} subtitle="Total registrado" />
+                  <MetricCard
+                    title="Entrevistadores"
+                    value={interviewerGroups.length}
+                    subtitle="Com atividade registrada"
+                  />
+                  <MetricCard
+                    title="Aplicações"
+                    value={new Set(records.map((r) => r.respondent.aplicacaoPneu || "-")).size}
+                    subtitle="Tipos mapeados"
+                  />
+                </div>
+              </Card>
+            )}
+          </>
+        )}
+
+        {screen === "identify" && (
+          <Card>
+            <h2 style={{ marginTop: 0 }}>Nova pesquisa</h2>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                gap: 16,
+              }}
+            >
+              <div>
+                <h3 style={{ marginTop: 0, marginBottom: 12, color: "#f4f4f5" }}>Entrevistador</h3>
+                <Field
+                  label="Nome do entrevistador *"
+                  value={interviewer.nome}
+                  onChange={(e) => setInterviewer({ ...interviewer, nome: e.target.value })}
+                />
+                <Field
+                  label="E-mail do entrevistador"
+                  value={interviewer.email}
+                  onChange={(e) => setInterviewer({ ...interviewer, email: e.target.value })}
+                  type="email"
+                />
+              </div>
+
+              <div>
+                <h3 style={{ marginTop: 0, marginBottom: 12, color: "#f4f4f5" }}>Entrevistado</h3>
+                <Field
+                  label="Nome do entrevistado *"
+                  value={respondent.nome}
+                  onChange={(e) => setRespondent({ ...respondent, nome: e.target.value })}
+                />
+                <Field
+  label="Celular"
+  value={respondent.celular}
+  onChange={(e) =>
+    setRespondent({ ...respondent, celular: formatPhone(e.target.value) })
+  }
+  placeholder="(11) 99999-9999"
+/>
+                <Field
+                  label="E-mail"
+                  value={respondent.email}
+                  onChange={(e) => setRespondent({ ...respondent, email: e.target.value })}
+                  type="email"
+                />
+                <Field
+                  label="Tipo de caminhão"
+                  value={respondent.tipoCaminhao}
+                  onChange={(e) => setRespondent({ ...respondent, tipoCaminhao: e.target.value })}
+                />
+                <Field
+                  label="Medida do pneu"
+                  value={respondent.tipoPneu}
+                  onChange={(e) => setRespondent({ ...respondent, tipoPneu: e.target.value })}
+                  placeholder="Ex.: 295/80R22.5"
+                />
+                <SelectField
+                  label="Aplicação do pneu *"
+                  value={respondent.aplicacaoPneu}
+                  onChange={(e) => setRespondent({ ...respondent, aplicacaoPneu: e.target.value })}
+                  options={TIRE_APPLICATIONS}
+                />
+                <Field
+                  label="Principal fornecedor hoje"
+                  value={respondent.fornecedorPrincipal}
+                  onChange={(e) => setRespondent({ ...respondent, fornecedorPrincipal: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
+              <SecondaryButton onClick={() => setScreen("home")}>Voltar</SecondaryButton>
+              <PrimaryButton onClick={startSurvey}>Iniciar pesquisa</PrimaryButton>
+            </div>
+          </Card>
+        )}
+
+        {screen === "survey" && (
+          <Card>
+            <div
+              style={{
+                height: 10,
+                background: "#27272a",
+                borderRadius: 999,
+                overflow: "hidden",
+                marginBottom: 18,
+              }}
+            >
+              <div
+                style={{
+                  width: `${progress}%`,
+                  height: "100%",
+                  background: "#dc2626",
+                }}
+              />
+            </div>
+
+            <p style={{ color: "#a1a1aa", marginBottom: 8 }}>
+              Pergunta {questionIndex + 1} de {QUESTIONS.length}
+            </p>
+
+            <h2 style={{ lineHeight: 1.5 }}>{QUESTIONS[questionIndex]}</h2>
+
+            <div style={{ marginTop: 18, display: "grid", gap: 10 }}>
+              {OPTIONS.map((option) => {
+                const selected = answers[questionIndex] === option;
+                return (
+                  <button
+                    key={option}
+                    onClick={() => {
+                      const updated = [...answers];
+                      updated[questionIndex] = option;
+                      setAnswers(updated);
+                    }}
+                    style={{
+                      textAlign: "left",
+                      padding: 16,
+                      borderRadius: 14,
+                      border: selected ? "1px solid #ef4444" : "1px solid #3f3f46",
+                      background: selected ? "rgba(220,38,38,0.15)" : "#09090b",
+                      color: "white",
+                      cursor: "pointer",
+                      fontSize: 15,
+                    }}
+                  >
+                    {option}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div style={{ display: "flex", gap: 10, marginTop: 18, flexWrap: "wrap" }}>
+              <SecondaryButton onClick={previousQuestion} disabled={questionIndex === 0}>
+                Anterior
+              </SecondaryButton>
+              <PrimaryButton onClick={nextQuestion}>Próxima</PrimaryButton>
+            </div>
+          </Card>
+        )}
+
+        {screen === "suggestion" && (
+          <Card>
+            <h2 style={{ marginTop: 0 }}>Sugestão final</h2>
+            <p style={{ color: "#a1a1aa" }}>
+              Se quiser, escreva uma melhoria ou funcionalidade que esteja faltando.
+            </p>
+            <textarea
+              value={suggestion}
+              onChange={(e) => setSuggestion(e.target.value)}
+              style={{
+                width: "100%",
+                minHeight: 160,
+                borderRadius: 14,
+                border: "1px solid #3f3f46",
+                background: "#09090b",
+                color: "white",
+                padding: 14,
+                fontSize: 15,
+                marginTop: 12,
+              }}
+            />
+            <div style={{ display: "flex", gap: 10, marginTop: 18, flexWrap: "wrap" }}>
+              <SecondaryButton onClick={() => setScreen("survey")}>Voltar</SecondaryButton>
+              <PrimaryButton onClick={finishSurvey}>Finalizar pesquisa</PrimaryButton>
+            </div>
+          </Card>
+        )}
+
+        {screen === "reports" && (
+          <>
+            {!reportUnlocked ? (
+              <Card>
+                <h2 style={{ marginTop: 0 }}>Acesso ao dashboard</h2>
+                <p style={{ color: "#a1a1aa" }}>
+                  Área protegida por senha. A visão geral preserva a privacidade dos entrevistadores.
+                </p>
+                <Field
+                  label="Senha de acesso"
+                  value={reportPasswordInput}
+                  onChange={(e) => setReportPasswordInput(e.target.value)}
+                  type="password"
+                />
+                <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
+                  <SecondaryButton onClick={() => setScreen("home")}>Voltar</SecondaryButton>
+                  <PrimaryButton onClick={unlockReports}>Entrar</PrimaryButton>
+                </div>
+              </Card>
+            ) : (
+              <>
+                <Card>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "space-between" }}>
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                      <SecondaryButton onClick={() => setScreen("home")}>Voltar</SecondaryButton>
+                      <PrimaryButton onClick={exportDetailedCsv}>Exportar detalhado</PrimaryButton>
+                      <SecondaryButton onClick={exportSummaryCsv}>Exportar resumo</SecondaryButton>
+                      <SecondaryButton onClick={exportSuggestionsCsv}>Exportar sugestões</SecondaryButton>
+                    </div>
+                    <div style={{ color: "#a1a1aa", fontSize: 14, alignSelf: "center" }}>
+                      {reportMode === "geral"
+                        ? "Visão geral com identidade preservada"
+                        : "Visão individual do entrevistador"}
+                    </div>
+                  </div>
+                </Card>
+
+                <Card>
+                  <h2 style={{ marginTop: 0 }}>Filtros do dashboard</h2>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                      gap: 16,
+                    }}
+                  >
+                    <SelectField
+                      label="Modo de visualização"
+                      value={reportMode}
+                      onChange={(e) => {
+                        setReportMode(e.target.value);
+                        if (e.target.value === "geral") setSelectedInterviewer("");
+                      }}
+                      options={["geral", "entrevistador"]}
+                    />
+                    {reportMode === "entrevistador" && (
+                      <SelectField
+                        label="Entrevistador"
+                        value={selectedInterviewer}
+                        onChange={(e) => setSelectedInterviewer(e.target.value)}
+                        options={interviewerGroups}
+                      />
+                    )}
+                    <SelectField
+                      label="Aplicação do pneu"
+                      value={selectedApplication}
+                      onChange={(e) => setSelectedApplication(e.target.value)}
+                      options={TIRE_APPLICATIONS}
+                    />
+                    <Field
+                      label="Buscar lead"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder="Nome, celular, e-mail ou medida"
+                    />
+                  </div>
+                </Card>
+
+                <Card>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                      gap: 12,
+                    }}
+                  >
+                    <MetricCard title="Pesquisas filtradas" value={dashboardSummary.total} subtitle="Base atual" />
+                    <MetricCard title="Média geral" value={dashboardSummary.avg} subtitle="Das respostas filtradas" />
+                    <MetricCard
+                      title={reportMode === "geral" ? "Entrevistadores ativos" : "Lead(s) entrevistado(s)"}
+                      value={reportMode === "geral" ? dashboardSummary.interviewers : dashboardSummary.total}
+                      subtitle={reportMode === "geral" ? "Sem expor nomes" : "Do entrevistador selecionado"}
+                    />
+                    <MetricCard title="Aplicação mais frequente" value={dashboardSummary.topApplication} />
+                  </div>
+                </Card>
+
+                <Card>
+                  <h2 style={{ marginTop: 0 }}>
+                    {reportMode === "geral" ? "Leads entrevistados" : "Minhas entrevistas"}
+                  </h2>
+                  <SimpleTable rows={filteredRecords} hideInterviewer={reportMode === "geral"} />
+                </Card>
+
+                <Card>
+                  <h2 style={{ marginTop: 0 }}>Resumo por pergunta</h2>
+                  {summary.map((item, index) => (
+                    <div
+                      key={index}
+                      style={{
+                        borderTop: index === 0 ? "none" : "1px solid #27272a",
+                        padding: "14px 0",
+                      }}
+                    >
+                      <div style={{ fontWeight: 600, marginBottom: 8 }}>{item.question}</div>
+                      <div style={{ color: "#d4d4d8", fontSize: 14 }}>
+                        Média: {item.average} | Total: {item.total} | Excelente: {item.excelente} | Bom: {item.bom} | Razoável: {item.razoavel} | Pouco útil: {item.poucoUtil} | Inútil: {item.inutil}
+                      </div>
+                    </div>
+                  ))}
+                </Card>
+
+                <Card>
+                  <h2 style={{ marginTop: 0 }}>Sugestões captadas</h2>
+                  {filteredRecords.filter((r) => r.suggestion?.trim()).length === 0 && (
+                    <p style={{ color: "#a1a1aa" }}>Ainda não há sugestões registradas com os filtros atuais.</p>
+                  )}
+
+                  {filteredRecords
+                    .filter((r) => r.suggestion?.trim())
+                    .map((record) => (
+                      <div
+                        key={record.id}
+                        style={{
+                          borderTop: "1px solid #27272a",
+                          padding: "14px 0",
+                        }}
+                      >
+                        <div style={{ fontWeight: 600 }}>{record.respondent.nome}</div>
+                        <div style={{ color: "#a1a1aa", fontSize: 13, margin: "4px 0 6px" }}>
+                          {reportMode === "geral" ? "Entrevistador: Oculto" : `Entrevistador: ${record.interviewer?.nome || "-"}`} • {record.createdAt}
+                        </div>
+                        <div style={{ color: "#d4d4d8", fontSize: 14, marginBottom: 6 }}>
+                          Aplicação: {record.respondent.aplicacaoPneu || "-"} • Medida: {record.respondent.tipoPneu || "-"}
+                        </div>
+                        <div style={{ lineHeight: 1.6 }}>{record.suggestion}</div>
+                      </div>
+                    ))}
+                </Card>
+              </>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
