@@ -387,8 +387,23 @@ export default function App() {
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
-  }, [records]);
-
+  }, [records]);  if (authLoading) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          background: "#09090b",
+          color: "white",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 18,
+        }}
+      >
+        Carregando acesso...
+      </div>
+    );
+  }
   async function handleLogin() {
     const { error } = await supabase.auth.signInWithPassword({
       email: loginEmail,
@@ -715,23 +730,7 @@ export default function App() {
     downloadCsv("sugestoes.csv", rows);
   }
 
-  if (authLoading) {
-    return (
-      <div
-        style={{
-          minHeight: "100vh",
-          background: "#09090b",
-          color: "white",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: 18,
-        }}
-      >
-        Carregando acesso...
-      </div>
-    );
-  }
+
 
   return (
     <div
