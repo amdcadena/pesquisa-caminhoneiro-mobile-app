@@ -26,14 +26,14 @@ const TIRE_APPLICATIONS = [
 ];
 
 const QUESTIONS = [
-  "Você já utiliza algum aplicativo para manutenção de pneus?",
+  "O quanto seria útil ter algum aplicativo para manutenção de pneus?",
   "O que você acha de ter o controle de pressão dos pneus no aplicativo?",
   "O que você acha de ter o controle do desgaste dos pneus no aplicativo?",
   "O quanto seria útil receber alertas com relação a manutenção preventiva?",
   "O que você acha de ter uma lista de checagem rápida em relação aos pneus antes das viagens?",
-  "O quanto seria útil registrar trocas e rodízios de pneus?",
+  "Seria útil registrar trocas e rodízios dos pneus?",
   "Como você vê em receber uma cópia do aplicativo para testes e uso, sem custos?",
-  "O quanto é importante o serviço de um profissional orientando e tirando dúvidas sobre pneus?",
+  "Seria útil ter um serviço de um profissional orientando e tirando dúvidas sobre pneus?",
   "O quanto é importante as redes sociais orientando os caminhoneiros com vídeos e dicas sobre pneus?",
 ];
 
