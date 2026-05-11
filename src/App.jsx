@@ -28,11 +28,9 @@ const QUESTIONS = [
   "O aplicativo para controle de pneus e manutenção do caminhão parece útil para sua rotina?",
   "O quanto seria útil acompanhar a pressão dos pneus no aplicativo?",
   "O quanto seria útil registrar e acompanhar o desgaste dos pneus?",
-  "O quanto seria útil consultar o histórico de manutenções do caminhão?",
   "O quanto seria útil receber alertas de manutenção preventiva?",
   "O quanto seria útil preencher um checklist rápido antes de sair para viagem?",
   "O quanto seria útil registrar trocas e rodízios de pneus?",
-  "O quanto seria útil acompanhar custos com pneus e manutenção?",
   "O quanto seria útil receber alertas de situações críticas do caminhão ou dos pneus?",
   "O quanto você considera importante que esse aplicativo exista no seu dia a dia?",
   "Pela descrição das funções, você acredita que o aplicativo seria fácil de usar?",
@@ -55,6 +53,14 @@ const emptyRespondent = {
   aplicacaoPneu: "",
   fornecedorPrincipal: "",
 };
+function formatPhone(value) {
+  const digits = value.replace(/\D/g, "").slice(0, 11);
+
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 7) return "(" + digits.slice(0, 2) + ") " + digits.slice(2);
+
+  return "(" + digits.slice(0, 2) + ") " + digits.slice(2, 7) + "-" + digits.slice(7, 11);
+}
 
 function downloadCsv(filename, rows) {
   const csv = rows
@@ -646,10 +652,13 @@ export default function App() {
                   onChange={(e) => setRespondent({ ...respondent, nome: e.target.value })}
                 />
                 <Field
-                  label="Celular"
-                  value={respondent.celular}
-                  onChange={(e) => setRespondent({ ...respondent, celular: e.target.value })}
-                />
+  label="Celular"
+  value={respondent.celular}
+  onChange={(e) =>
+    setRespondent({ ...respondent, celular: formatPhone(e.target.value) })
+  }
+  placeholder="(11) 99999-9999"
+/>
                 <Field
                   label="E-mail"
                   value={respondent.email}
