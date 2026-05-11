@@ -26,15 +26,15 @@ const TIRE_APPLICATIONS = [
 ];
 
 const QUESTIONS = [
-  "O aplicativo para controle de pneus e manutenção do caminhão parece útil para sua rotina?",
-  "O quanto seria útil acompanhar a pressão dos pneus no aplicativo?",
-  "O quanto seria útil registrar e acompanhar o desgaste dos pneus?",
-  "O quanto seria útil receber alertas de manutenção preventiva?",
-  "O quanto seria útil preencher um checklist rápido antes de sair para viagem?",
+  "Você já utiliza algum aplicativo para manutenção de pneus?",
+  "O que você acha de ter o controle de pressão dos pneus no aplicativo?",
+  "O que você acha de ter o controle do desgaste dos pneus no aplicativo?",
+  "O quanto seria útil receber alertas com relação a manutenção preventiva?",
+  "O que você acha de ter uma lista de checagem rápida em relação aos pneus antes das viagens?",
   "O quanto seria útil registrar trocas e rodízios de pneus?",
-  "O quanto seria útil receber alertas de situações críticas do caminhão ou dos pneus?",
-  "O quanto você considera importante que esse aplicativo exista no seu dia a dia?",
-  "Pela descrição das funções, você acredita que o aplicativo seria fácil de usar?",
+  "Como você vê em receber uma cópia do aplicativo para testes e uso, sem custos?",
+  "O quanto é importante o serviço de um profissional orientando e tirando dúvidas sobre pneus?",
+  "O quanto é importante as redes sociais orientando os caminhoneiros com vídeos e dicas sobre pneus?",
 ];
 
 const STORAGE_KEY = "pesquisa-caminhoneiro-web";
@@ -117,9 +117,10 @@ function MetricCard({ title, value, subtitle = "" }) {
   );
 }
 
-function PrimaryButton({ children, onClick, full = false }) {
+function PrimaryButton({ children, onClick, full = false, type = "button" }) {
   return (
     <button
+      type={type}
       onClick={onClick}
       style={{
         background: "#dc2626",
@@ -138,9 +139,10 @@ function PrimaryButton({ children, onClick, full = false }) {
   );
 }
 
-function SecondaryButton({ children, onClick, disabled = false }) {
+function SecondaryButton({ children, onClick, disabled = false, type = "button" }) {
   return (
     <button
+      type={type}
       onClick={onClick}
       disabled={disabled}
       style={{
@@ -276,6 +278,11 @@ export default function App() {
   const [selectedApplication, setSelectedApplication] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
+  const [authUser, setAuthUser] = useState(null);
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [authLoading, setAuthLoading] = useState(true);
+
   useEffect(() => {
     async function loadRecords() {
       try {
@@ -317,6 +324,7 @@ export default function App() {
           suggestion: item.sugestao || "",
           average: item.media_geral ? Number(item.media_geral).toFixed(2) : "0.00",
           createdAt: item.created_at ? new Date(item.created_at).toLocaleString("pt-BR") : "",
+          authUserId: item.auth_user_id || null,
         }));
 
         setRecords(formatted);
@@ -338,18 +346,94 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    let mounted = true;
+
+    const timeout = setTimeout(() => {
+      if (mounted) setAuthLoading(false);
+    }, 3000);
+
+    async function loadSession() {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+
+        if (error) {
+          console.error("Erro ao carregar sessão:", error.message);
+        }
+
+        if (mounted) {
+          setAuthUser(data?.session?.user ?? null);
+          setAuthLoading(false);
+        }
+      } catch (err) {
+        console.error("Falha ao carregar sessão:", err);
+        if (mounted) setAuthLoading(false);
+      }
+    }
+
+    loadSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (mounted) {
+        setAuthUser(session?.user ?? null);
+        setAuthLoading(false);
+      }
+    });
+
+    return () => {
+      mounted = false;
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
   }, [records]);
+
+  async function handleLogin() {
+    const { error } = await supabase.auth.signInWithPassword({
+      email: loginEmail,
+      password: loginPassword,
+    });
+
+    if (error) {
+      alert("Erro no login: " + error.message);
+      return;
+    }
+
+    setScreen("home");
+    alert("Login realizado com sucesso.");
+  }
+
+  async function handleLogout() {
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      alert("Erro ao sair: " + error.message);
+      return;
+    }
+
+    setScreen("home");
+    setReportUnlocked(false);
+    alert("Sessão encerrada.");
+  }
+
+  const visibleRecords = useMemo(() => {
+    if (!authUser) return records;
+    return records.filter((record) => record.authUserId === authUser.id);
+  }, [records, authUser]);
 
   const progress = ((questionIndex + 1) / QUESTIONS.length) * 100;
 
   const interviewerGroups = useMemo(
-    () => Array.from(new Set(records.map((r) => r.interviewer?.nome || "Não informado"))).sort(),
-    [records]
+    () => Array.from(new Set(visibleRecords.map((r) => r.interviewer?.nome || "Não informado"))).sort(),
+    [visibleRecords]
   );
 
   const filteredRecords = useMemo(() => {
-    return records.filter((record) => {
+    return visibleRecords.filter((record) => {
       const matchesApplication = selectedApplication
         ? record.respondent.aplicacaoPneu === selectedApplication
         : true;
@@ -376,7 +460,7 @@ export default function App() {
 
       return matchesApplication && matchesSearch;
     });
-  }, [records, selectedApplication, selectedInterviewer, searchTerm, reportMode]);
+  }, [visibleRecords, selectedApplication, selectedInterviewer, searchTerm, reportMode]);
 
   const dashboardSummary = useMemo(() => {
     const total = filteredRecords.length;
@@ -474,6 +558,7 @@ export default function App() {
     ).toFixed(2);
 
     const payload = {
+      auth_user_id: authUser?.id || null,
       entrevistador_nome: interviewer.nome,
       entrevistador_email: interviewer.email,
       entrevistado_nome: respondent.nome,
@@ -513,6 +598,7 @@ export default function App() {
       createdAt: data?.created_at
         ? new Date(data.created_at).toLocaleString("pt-BR")
         : new Date().toLocaleString("pt-BR"),
+      authUserId: data?.auth_user_id || authUser?.id || null,
     };
 
     setRecords((prev) => {
@@ -638,6 +724,24 @@ export default function App() {
     downloadCsv("sugestoes.csv", rows);
   }
 
+  if (authLoading) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          background: "#09090b",
+          color: "white",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 18,
+        }}
+      >
+        Carregando acesso...
+      </div>
+    );
+  }
+
   return (
     <div
       style={{
@@ -651,390 +755,420 @@ export default function App() {
         <div style={{ marginBottom: 20 }}>
           <h1 style={{ margin: 0, fontSize: 30 }}>Pesquisa do Caminhoneiro</h1>
           <p style={{ color: "#a1a1aa", marginTop: 6 }}>
-            Fase 2.2 • Supabase + dashboard privado
+            Fase 2.3 • Login + privacidade por entrevistador
           </p>
+          {authUser && (
+            <div style={{ color: "#a1a1aa", marginTop: 8, marginBottom: 8 }}>
+              Logado como: {authUser.email}
+            </div>
+          )}
         </div>
 
-        {screen === "home" && (
+        {!authUser ? (
+          <Card>
+            <h2 style={{ marginTop: 0 }}>Entrar no sistema</h2>
+            <p style={{ color: "#a1a1aa" }}>
+              Use seu e-mail e senha de entrevistador para acessar a pesquisa.
+            </p>
+
+            <Field
+              label="E-mail"
+              value={loginEmail}
+              onChange={(e) => setLoginEmail(e.target.value)}
+              type="email"
+            />
+
+            <Field
+              label="Senha"
+              value={loginPassword}
+              onChange={(e) => setLoginPassword(e.target.value)}
+              type="password"
+            />
+
+            <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
+              <PrimaryButton onClick={handleLogin}>Entrar</PrimaryButton>
+            </div>
+          </Card>
+        ) : (
           <>
-            <Card>
-              <h2 style={{ marginTop: 0 }}>O que esta fase traz</h2>
-              <p style={{ color: "#d4d4d8", lineHeight: 1.6 }}>
-                Inclusão da aplicação do pneu em seleção, gravação no Supabase e painel mais próximo
-                de dashboard, com visão geral sem expor quem entrevistou e visão individual por entrevistador.
-              </p>
-            </Card>
+            {screen === "home" && (
+              <>
+                <Card>
+                  <h2 style={{ marginTop: 0 }}>O que esta fase traz</h2>
+                  <p style={{ color: "#d4d4d8", lineHeight: 1.6 }}>
+                    Login por entrevistador, gravação do usuário no Supabase e visualização filtrada
+                    para cada entrevistador ver apenas suas próprias pesquisas.
+                  </p>
+                </Card>
 
-            <Card>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <PrimaryButton onClick={() => setScreen("identify")}>Nova pesquisa</PrimaryButton>
-                <SecondaryButton
-                  onClick={() => {
-                    setReportPasswordInput("");
-                    setReportUnlocked(false);
-                    setReportMode("geral");
-                    setSelectedInterviewer("");
-                    setSelectedApplication("");
-                    setSearchTerm("");
-                    setScreen("reports");
-                  }}
-                >
-                  Dashboard e relatórios
-                </SecondaryButton>
-              </div>
-            </Card>
+                <Card>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <PrimaryButton onClick={() => setScreen("identify")}>Nova pesquisa</PrimaryButton>
+                    <SecondaryButton
+                      onClick={() => {
+                        setReportPasswordInput("");
+                        setReportUnlocked(false);
+                        setReportMode("geral");
+                        setSelectedInterviewer("");
+                        setSelectedApplication("");
+                        setSearchTerm("");
+                        setScreen("reports");
+                      }}
+                    >
+                      Dashboard e relatórios
+                    </SecondaryButton>
+                    <SecondaryButton onClick={handleLogout}>Sair</SecondaryButton>
+                  </div>
+                </Card>
 
-            {records.length > 0 && (
+                {visibleRecords.length > 0 && (
+                  <Card>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+                        gap: 12,
+                      }}
+                    >
+                      <MetricCard title="Pesquisas" value={visibleRecords.length} subtitle="Do usuário logado" />
+                      <MetricCard
+                        title="Entrevistadores"
+                        value={interviewerGroups.length}
+                        subtitle="Na sua base"
+                      />
+                      <MetricCard
+                        title="Aplicações"
+                        value={new Set(visibleRecords.map((r) => r.respondent.aplicacaoPneu || "-")).size}
+                        subtitle="Tipos mapeados"
+                      />
+                    </div>
+                  </Card>
+                )}
+              </>
+            )}
+
+            {screen === "identify" && (
               <Card>
+                <h2 style={{ marginTop: 0 }}>Nova pesquisa</h2>
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-                    gap: 12,
+                    gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                    gap: 16,
                   }}
                 >
-                  <MetricCard title="Pesquisas" value={records.length} subtitle="Total registrado" />
-                  <MetricCard
-                    title="Entrevistadores"
-                    value={interviewerGroups.length}
-                    subtitle="Com atividade registrada"
-                  />
-                  <MetricCard
-                    title="Aplicações"
-                    value={new Set(records.map((r) => r.respondent.aplicacaoPneu || "-")).size}
-                    subtitle="Tipos mapeados"
-                  />
-                </div>
-              </Card>
-            )}
-          </>
-        )}
-
-        {screen === "identify" && (
-          <Card>
-            <h2 style={{ marginTop: 0 }}>Nova pesquisa</h2>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-                gap: 16,
-              }}
-            >
-              <div>
-                <h3 style={{ marginTop: 0, marginBottom: 12, color: "#f4f4f5" }}>Entrevistador</h3>
-                <Field
-                  label="Nome do entrevistador *"
-                  value={interviewer.nome}
-                  onChange={(e) => setInterviewer({ ...interviewer, nome: e.target.value })}
-                />
-                <Field
-                  label="E-mail do entrevistador"
-                  value={interviewer.email}
-                  onChange={(e) => setInterviewer({ ...interviewer, email: e.target.value })}
-                  type="email"
-                />
-              </div>
-
-              <div>
-                <h3 style={{ marginTop: 0, marginBottom: 12, color: "#f4f4f5" }}>Entrevistado</h3>
-                <Field
-                  label="Nome do entrevistado *"
-                  value={respondent.nome}
-                  onChange={(e) => setRespondent({ ...respondent, nome: e.target.value })}
-                />
-                <Field
-                  label="Celular"
-                  value={respondent.celular}
-                  onChange={(e) =>
-                    setRespondent({ ...respondent, celular: formatPhone(e.target.value) })
-                  }
-                  placeholder="(11) 99999-9999"
-                />
-                <Field
-                  label="E-mail"
-                  value={respondent.email}
-                  onChange={(e) => setRespondent({ ...respondent, email: e.target.value })}
-                  type="email"
-                />
-                <Field
-                  label="Tipo de caminhão"
-                  value={respondent.tipoCaminhao}
-                  onChange={(e) => setRespondent({ ...respondent, tipoCaminhao: e.target.value })}
-                />
-                <Field
-                  label="Medida do pneu"
-                  value={respondent.tipoPneu}
-                  onChange={(e) => setRespondent({ ...respondent, tipoPneu: e.target.value })}
-                  placeholder="Ex.: 295/80R22.5"
-                />
-                <SelectField
-                  label="Aplicação do pneu *"
-                  value={respondent.aplicacaoPneu}
-                  onChange={(e) =>
-                    setRespondent({ ...respondent, aplicacaoPneu: e.target.value })
-                  }
-                  options={TIRE_APPLICATIONS}
-                />
-                <Field
-                  label="Principal fornecedor hoje"
-                  value={respondent.fornecedorPrincipal}
-                  onChange={(e) =>
-                    setRespondent({ ...respondent, fornecedorPrincipal: e.target.value })
-                  }
-                />
-              </div>
-            </div>
-
-            <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
-              <SecondaryButton onClick={() => setScreen("home")}>Voltar</SecondaryButton>
-              <PrimaryButton onClick={startSurvey}>Iniciar pesquisa</PrimaryButton>
-            </div>
-          </Card>
-        )}
-
-        {screen === "survey" && (
-          <Card>
-            <div
-              style={{
-                height: 10,
-                background: "#27272a",
-                borderRadius: 999,
-                overflow: "hidden",
-                marginBottom: 18,
-              }}
-            >
-              <div
-                style={{
-                  width: `${progress}%`,
-                  height: "100%",
-                  background: "#dc2626",
-                }}
-              />
-            </div>
-
-            <p style={{ color: "#a1a1aa", marginBottom: 8 }}>
-              Pergunta {questionIndex + 1} de {QUESTIONS.length}
-            </p>
-
-            <h2 style={{ lineHeight: 1.5 }}>{QUESTIONS[questionIndex]}</h2>
-
-            <div style={{ marginTop: 18, display: "grid", gap: 10 }}>
-              {OPTIONS.map((option) => {
-                const selected = answers[questionIndex] === option;
-                return (
-                  <button
-                    key={option}
-                    onClick={() => {
-                      const updated = [...answers];
-                      updated[questionIndex] = option;
-                      setAnswers(updated);
-                    }}
-                    style={{
-                      textAlign: "left",
-                      padding: 16,
-                      borderRadius: 14,
-                      border: selected ? "1px solid #ef4444" : "1px solid #3f3f46",
-                      background: selected ? "rgba(220,38,38,0.15)" : "#09090b",
-                      color: "white",
-                      cursor: "pointer",
-                      fontSize: 15,
-                    }}
-                  >
-                    {option}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div style={{ display: "flex", gap: 10, marginTop: 18, flexWrap: "wrap" }}>
-              <SecondaryButton onClick={previousQuestion} disabled={questionIndex === 0}>
-                Anterior
-              </SecondaryButton>
-              <PrimaryButton onClick={nextQuestion}>Próxima</PrimaryButton>
-            </div>
-          </Card>
-        )}
-
-        {screen === "suggestion" && (
-          <Card>
-            <h2 style={{ marginTop: 0 }}>Sugestão final</h2>
-            <p style={{ color: "#a1a1aa" }}>
-              Se quiser, escreva uma melhoria ou funcionalidade que esteja faltando.
-            </p>
-            <textarea
-              value={suggestion}
-              onChange={(e) => setSuggestion(e.target.value)}
-              style={{
-                width: "100%",
-                minHeight: 160,
-                borderRadius: 14,
-                border: "1px solid #3f3f46",
-                background: "#09090b",
-                color: "white",
-                padding: 14,
-                fontSize: 15,
-                marginTop: 12,
-              }}
-            />
-            <div style={{ display: "flex", gap: 10, marginTop: 18, flexWrap: "wrap" }}>
-              <SecondaryButton onClick={() => setScreen("survey")}>Voltar</SecondaryButton>
-              <PrimaryButton onClick={finishSurvey}>Finalizar pesquisa</PrimaryButton>
-            </div>
-          </Card>
-        )}
-
-        {screen === "reports" && (
-          <>
-            {!reportUnlocked ? (
-              <Card>
-                <h2 style={{ marginTop: 0 }}>Acesso ao dashboard</h2>
-                <p style={{ color: "#a1a1aa" }}>
-                  Área protegida por senha. A visão geral preserva a privacidade dos entrevistadores.
-                </p>
-                <Field
-                  label="Senha de acesso"
-                  value={reportPasswordInput}
-                  onChange={(e) => setReportPasswordInput(e.target.value)}
-                  type="password"
-                />
-                <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
-                  <SecondaryButton onClick={() => setScreen("home")}>Voltar</SecondaryButton>
-                  <PrimaryButton onClick={unlockReports}>Entrar</PrimaryButton>
-                </div>
-              </Card>
-            ) : (
-              <>
-                <Card>
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "space-between" }}>
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                      <SecondaryButton onClick={() => setScreen("home")}>Voltar</SecondaryButton>
-                      <PrimaryButton onClick={exportDetailedCsv}>Exportar detalhado</PrimaryButton>
-                      <SecondaryButton onClick={exportSummaryCsv}>Exportar resumo</SecondaryButton>
-                      <SecondaryButton onClick={exportSuggestionsCsv}>Exportar sugestões</SecondaryButton>
-                    </div>
-                    <div style={{ color: "#a1a1aa", fontSize: 14, alignSelf: "center" }}>
-                      {reportMode === "geral"
-                        ? "Visão geral com identidade preservada"
-                        : "Visão individual do entrevistador"}
-                    </div>
-                  </div>
-                </Card>
-
-                <Card>
-                  <h2 style={{ marginTop: 0 }}>Filtros do dashboard</h2>
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                      gap: 16,
-                    }}
-                  >
-                    <SelectField
-                      label="Modo de visualização"
-                      value={reportMode}
-                      onChange={(e) => {
-                        setReportMode(e.target.value);
-                        if (e.target.value === "geral") setSelectedInterviewer("");
-                      }}
-                      options={["geral", "entrevistador"]}
+                  <div>
+                    <h3 style={{ marginTop: 0, marginBottom: 12, color: "#f4f4f5" }}>Entrevistador</h3>
+                    <Field
+                      label="Nome do entrevistador *"
+                      value={interviewer.nome}
+                      onChange={(e) => setInterviewer({ ...interviewer, nome: e.target.value })}
                     />
-                    {reportMode === "entrevistador" && (
-                      <SelectField
-                        label="Entrevistador"
-                        value={selectedInterviewer}
-                        onChange={(e) => setSelectedInterviewer(e.target.value)}
-                        options={interviewerGroups}
-                      />
-                    )}
+                    <Field
+                      label="E-mail do entrevistador"
+                      value={interviewer.email || authUser.email}
+                      onChange={(e) => setInterviewer({ ...interviewer, email: e.target.value })}
+                      type="email"
+                    />
+                  </div>
+
+                  <div>
+                    <h3 style={{ marginTop: 0, marginBottom: 12, color: "#f4f4f5" }}>Entrevistado</h3>
+                    <Field
+                      label="Nome do entrevistado *"
+                      value={respondent.nome}
+                      onChange={(e) => setRespondent({ ...respondent, nome: e.target.value })}
+                    />
+                    <Field
+                      label="Celular"
+                      value={respondent.celular}
+                      onChange={(e) =>
+                        setRespondent({ ...respondent, celular: formatPhone(e.target.value) })
+                      }
+                      placeholder="(11) 99999-9999"
+                    />
+                    <Field
+                      label="E-mail"
+                      value={respondent.email}
+                      onChange={(e) => setRespondent({ ...respondent, email: e.target.value })}
+                      type="email"
+                    />
+                    <Field
+                      label="Tipo de caminhão"
+                      value={respondent.tipoCaminhao}
+                      onChange={(e) => setRespondent({ ...respondent, tipoCaminhao: e.target.value })}
+                    />
+                    <Field
+                      label="Medida do pneu"
+                      value={respondent.tipoPneu}
+                      onChange={(e) => setRespondent({ ...respondent, tipoPneu: e.target.value })}
+                      placeholder="Ex.: 295/80R22.5"
+                    />
                     <SelectField
-                      label="Aplicação do pneu"
-                      value={selectedApplication}
-                      onChange={(e) => setSelectedApplication(e.target.value)}
+                      label="Aplicação do pneu *"
+                      value={respondent.aplicacaoPneu}
+                      onChange={(e) =>
+                        setRespondent({ ...respondent, aplicacaoPneu: e.target.value })
+                      }
                       options={TIRE_APPLICATIONS}
                     />
                     <Field
-                      label="Buscar lead"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      placeholder="Nome, celular, e-mail ou medida"
+                      label="Principal fornecedor hoje"
+                      value={respondent.fornecedorPrincipal}
+                      onChange={(e) =>
+                        setRespondent({ ...respondent, fornecedorPrincipal: e.target.value })
+                      }
                     />
                   </div>
-                </Card>
+                </div>
 
-                <Card>
+                <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
+                  <SecondaryButton onClick={() => setScreen("home")}>Voltar</SecondaryButton>
+                  <PrimaryButton onClick={startSurvey}>Iniciar pesquisa</PrimaryButton>
+                </div>
+              </Card>
+            )}
+
+            {screen === "survey" && (
+              <Card>
+                <div
+                  style={{
+                    height: 10,
+                    background: "#27272a",
+                    borderRadius: 999,
+                    overflow: "hidden",
+                    marginBottom: 18,
+                  }}
+                >
                   <div
                     style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                      gap: 12,
+                      width: `${progress}%`,
+                      height: "100%",
+                      background: "#dc2626",
                     }}
-                  >
-                    <MetricCard title="Pesquisas filtradas" value={dashboardSummary.total} subtitle="Base atual" />
-                    <MetricCard title="Média geral" value={dashboardSummary.avg} subtitle="Das respostas filtradas" />
-                    <MetricCard
-                      title={reportMode === "geral" ? "Entrevistadores ativos" : "Lead(s) entrevistado(s)"}
-                      value={reportMode === "geral" ? dashboardSummary.interviewers : dashboardSummary.total}
-                      subtitle={reportMode === "geral" ? "Sem expor nomes" : "Do entrevistador selecionado"}
-                    />
-                    <MetricCard title="Aplicação mais frequente" value={dashboardSummary.topApplication} />
-                  </div>
-                </Card>
+                  />
+                </div>
 
-                <Card>
-                  <h2 style={{ marginTop: 0 }}>
-                    {reportMode === "geral" ? "Leads entrevistados" : "Minhas entrevistas"}
-                  </h2>
-                  <SimpleTable rows={filteredRecords} hideInterviewer={reportMode === "geral"} />
-                </Card>
+                <p style={{ color: "#a1a1aa", marginBottom: 8 }}>
+                  Pergunta {questionIndex + 1} de {QUESTIONS.length}
+                </p>
 
-                <Card>
-                  <h2 style={{ marginTop: 0 }}>Resumo por pergunta</h2>
-                  {summary.map((item, index) => (
-                    <div
-                      key={index}
-                      style={{
-                        borderTop: index === 0 ? "none" : "1px solid #27272a",
-                        padding: "14px 0",
-                      }}
-                    >
-                      <div style={{ fontWeight: 600, marginBottom: 8 }}>{item.question}</div>
-                      <div style={{ color: "#d4d4d8", fontSize: 14 }}>
-                        Média: {item.average} | Total: {item.total} | Excelente: {item.excelente} | Bom: {item.bom} | Razoável: {item.razoavel} | Pouco útil: {item.poucoUtil} | Inútil: {item.inutil}
-                      </div>
-                    </div>
-                  ))}
-                </Card>
+                <h2 style={{ lineHeight: 1.5 }}>{QUESTIONS[questionIndex]}</h2>
 
-                <Card>
-                  <h2 style={{ marginTop: 0 }}>Sugestões captadas</h2>
-                  {filteredRecords.filter((r) => r.suggestion?.trim()).length === 0 && (
-                    <p style={{ color: "#a1a1aa" }}>Ainda não há sugestões registradas com os filtros atuais.</p>
-                  )}
-
-                  {filteredRecords
-                    .filter((r) => r.suggestion?.trim())
-                    .map((record) => (
-                      <div
-                        key={record.id}
+                <div style={{ marginTop: 18, display: "grid", gap: 10 }}>
+                  {OPTIONS.map((option) => {
+                    const selected = answers[questionIndex] === option;
+                    return (
+                      <button
+                        key={option}
+                        onClick={() => {
+                          const updated = [...answers];
+                          updated[questionIndex] = option;
+                          setAnswers(updated);
+                        }}
                         style={{
-                          borderTop: "1px solid #27272a",
-                          padding: "14px 0",
+                          textAlign: "left",
+                          padding: 16,
+                          borderRadius: 14,
+                          border: selected ? "1px solid #ef4444" : "1px solid #3f3f46",
+                          background: selected ? "rgba(220,38,38,0.15)" : "#09090b",
+                          color: "white",
+                          cursor: "pointer",
+                          fontSize: 15,
                         }}
                       >
-                        <div style={{ fontWeight: 600 }}>{record.respondent.nome}</div>
-                        <div style={{ color: "#a1a1aa", fontSize: 13, margin: "4px 0 6px" }}>
-                          {reportMode === "geral"
-                            ? "Entrevistador: Oculto"
-                            : `Entrevistador: ${record.interviewer?.nome || "-"}`}{" "}
-                          • {record.createdAt}
+                        {option}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div style={{ display: "flex", gap: 10, marginTop: 18, flexWrap: "wrap" }}>
+                  <SecondaryButton onClick={previousQuestion} disabled={questionIndex === 0}>
+                    Anterior
+                  </SecondaryButton>
+                  <PrimaryButton onClick={nextQuestion}>Próxima</PrimaryButton>
+                </div>
+              </Card>
+            )}
+
+            {screen === "suggestion" && (
+              <Card>
+                <h2 style={{ marginTop: 0 }}>Sugestão final</h2>
+                <p style={{ color: "#a1a1aa" }}>
+                  Se quiser, escreva uma melhoria ou funcionalidade que esteja faltando.
+                </p>
+                <textarea
+                  value={suggestion}
+                  onChange={(e) => setSuggestion(e.target.value)}
+                  style={{
+                    width: "100%",
+                    minHeight: 160,
+                    borderRadius: 14,
+                    border: "1px solid #3f3f46",
+                    background: "#09090b",
+                    color: "white",
+                    padding: 14,
+                    fontSize: 15,
+                    marginTop: 12,
+                  }}
+                />
+                <div style={{ display: "flex", gap: 10, marginTop: 18, flexWrap: "wrap" }}>
+                  <SecondaryButton onClick={() => setScreen("survey")}>Voltar</SecondaryButton>
+                  <PrimaryButton onClick={finishSurvey}>Finalizar pesquisa</PrimaryButton>
+                </div>
+              </Card>
+            )}
+
+            {screen === "reports" && (
+              <>
+                {!reportUnlocked ? (
+                  <Card>
+                    <h2 style={{ marginTop: 0 }}>Acesso ao dashboard</h2>
+                    <p style={{ color: "#a1a1aa" }}>
+                      Área protegida por senha. O dashboard exibe apenas as suas pesquisas.
+                    </p>
+                    <Field
+                      label="Senha de acesso"
+                      value={reportPasswordInput}
+                      onChange={(e) => setReportPasswordInput(e.target.value)}
+                      type="password"
+                    />
+                    <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
+                      <SecondaryButton onClick={() => setScreen("home")}>Voltar</SecondaryButton>
+                      <PrimaryButton onClick={unlockReports}>Entrar</PrimaryButton>
+                    </div>
+                  </Card>
+                ) : (
+                  <>
+                    <Card>
+                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "space-between" }}>
+                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                          <SecondaryButton onClick={() => setScreen("home")}>Voltar</SecondaryButton>
+                          <PrimaryButton onClick={exportDetailedCsv}>Exportar detalhado</PrimaryButton>
+                          <SecondaryButton onClick={exportSummaryCsv}>Exportar resumo</SecondaryButton>
+                          <SecondaryButton onClick={exportSuggestionsCsv}>Exportar sugestões</SecondaryButton>
                         </div>
-                        <div style={{ color: "#d4d4d8", fontSize: 14, marginBottom: 6 }}>
-                          Aplicação: {record.respondent.aplicacaoPneu || "-"} • Medida: {record.respondent.tipoPneu || "-"}
+                        <div style={{ color: "#a1a1aa", fontSize: 14, alignSelf: "center" }}>
+                          Visão das pesquisas do usuário logado
                         </div>
-                        <div style={{ lineHeight: 1.6 }}>{record.suggestion}</div>
                       </div>
-                    ))}
-                </Card>
+                    </Card>
+
+                    <Card>
+                      <h2 style={{ marginTop: 0 }}>Filtros do dashboard</h2>
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                          gap: 16,
+                        }}
+                      >
+                        <SelectField
+                          label="Modo de visualização"
+                          value={reportMode}
+                          onChange={(e) => {
+                            setReportMode(e.target.value);
+                            if (e.target.value === "geral") setSelectedInterviewer("");
+                          }}
+                          options={["geral", "entrevistador"]}
+                        />
+                        {reportMode === "entrevistador" && (
+                          <SelectField
+                            label="Entrevistador"
+                            value={selectedInterviewer}
+                            onChange={(e) => setSelectedInterviewer(e.target.value)}
+                            options={interviewerGroups}
+                          />
+                        )}
+                        <SelectField
+                          label="Aplicação do pneu"
+                          value={selectedApplication}
+                          onChange={(e) => setSelectedApplication(e.target.value)}
+                          options={TIRE_APPLICATIONS}
+                        />
+                        <Field
+                          label="Buscar lead"
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          placeholder="Nome, celular, e-mail ou medida"
+                        />
+                      </div>
+                    </Card>
+
+                    <Card>
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                          gap: 12,
+                        }}
+                      >
+                        <MetricCard title="Pesquisas filtradas" value={dashboardSummary.total} subtitle="Base atual" />
+                        <MetricCard title="Média geral" value={dashboardSummary.avg} subtitle="Das respostas filtradas" />
+                        <MetricCard
+                          title="Entrevistadores ativos"
+                          value={dashboardSummary.interviewers}
+                          subtitle="Na sua base"
+                        />
+                        <MetricCard title="Aplicação mais frequente" value={dashboardSummary.topApplication} />
+                      </div>
+                    </Card>
+
+                    <Card>
+                      <h2 style={{ marginTop: 0 }}>
+                        {reportMode === "geral" ? "Leads entrevistados" : "Minhas entrevistas"}
+                      </h2>
+                      <SimpleTable rows={filteredRecords} hideInterviewer={false} />
+                    </Card>
+
+                    <Card>
+                      <h2 style={{ marginTop: 0 }}>Resumo por pergunta</h2>
+                      {summary.map((item, index) => (
+                        <div
+                          key={index}
+                          style={{
+                            borderTop: index === 0 ? "none" : "1px solid #27272a",
+                            padding: "14px 0",
+                          }}
+                        >
+                          <div style={{ fontWeight: 600, marginBottom: 8 }}>{item.question}</div>
+                          <div style={{ color: "#d4d4d8", fontSize: 14 }}>
+                            Média: {item.average} | Total: {item.total} | Excelente: {item.excelente} | Bom: {item.bom} | Razoável: {item.razoavel} | Pouco útil: {item.poucoUtil} | Inútil: {item.inutil}
+                          </div>
+                        </div>
+                      ))}
+                    </Card>
+
+                    <Card>
+                      <h2 style={{ marginTop: 0 }}>Sugestões captadas</h2>
+                      {filteredRecords.filter((r) => r.suggestion?.trim()).length === 0 && (
+                        <p style={{ color: "#a1a1aa" }}>Ainda não há sugestões registradas com os filtros atuais.</p>
+                      )}
+
+                      {filteredRecords
+                        .filter((r) => r.suggestion?.trim())
+                        .map((record) => (
+                          <div
+                            key={record.id}
+                            style={{
+                              borderTop: "1px solid #27272a",
+                              padding: "14px 0",
+                            }}
+                          >
+                            <div style={{ fontWeight: 600 }}>{record.respondent.nome}</div>
+                            <div style={{ color: "#a1a1aa", fontSize: 13, margin: "4px 0 6px" }}>
+                              Entrevistador: {record.interviewer?.nome || "-"} • {record.createdAt}
+                            </div>
+                            <div style={{ color: "#d4d4d8", fontSize: 14, marginBottom: 6 }}>
+                              Aplicação: {record.respondent.aplicacaoPneu || "-"} • Medida: {record.respondent.tipoPneu || "-"}
+                            </div>
+                            <div style={{ lineHeight: 1.6 }}>{record.suggestion}</div>
+                          </div>
+                        ))}
+                    </Card>
+                  </>
+                )}
               </>
             )}
           </>
