@@ -172,6 +172,7 @@ function MetricCard({ title, value, subtitle = "" }) {
   );
 }
 
+
 function PrimaryButton({ children, onClick, full = false, type = "button" }) {
   return (
     <button
@@ -398,6 +399,38 @@ export default function App() {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [authLoading, setAuthLoading] = useState(true);
+
+  async function deleteMyRecords() {
+  if (!authUser?.id) {
+    alert("Usuário não identificado.");
+    return;
+  }
+
+  const confirmed = window.confirm(
+    "Tem certeza que deseja apagar todas as suas pesquisas? Essa ação não poderá ser desfeita."
+  );
+
+  if (!confirmed) return;
+
+  const { error } = await supabase
+    .from("pesquisas_caminhoneiro")
+    .delete()
+    .eq("auth_user_id", authUser.id);
+
+  if (error) {
+    alert("Erro ao apagar suas pesquisas: " + error.message);
+    return;
+  }
+
+  setRecords((prev) => {
+    const updated = prev.filter((record) => record.authUserId !== authUser.id);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    return updated;
+  });
+
+  alert("Suas pesquisas foram apagadas com sucesso.");
+  setScreen("home");
+}
 
   useEffect(() => {
     async function loadRecords() {
@@ -668,63 +701,71 @@ export default function App() {
   }
 
   async function finishSurvey() {
-    const average = (
-      answers.reduce((sum, answer) => sum + (SCORE_MAP[answer] || 0), 0) /
-      QUESTIONS.length
-    ).toFixed(2);
+  alert("Entrou no finishSurvey");
 
-    const payload = {
-      auth_user_id: authUser?.id || null,
-      entrevistador_nome: interviewer.nome,
-      entrevistado_nome: respondent.nome,
-      entrevistado_email: respondent.email,
-      entrevistado_celular: respondent.celular,
-      tipo_caminhao: respondent.tipoCaminhao,
-      medida_pneu: respondent.tipoPneu,
-      aplicacao_pneu: respondent.aplicacaoPneu,
-      fornecedor_principal: respondent.fornecedorPrincipal,
-      respostas: answers,
-      sugestao: suggestion,
-      media_geral: Number(average),
-      status: "concluida",
-    };
+  const average = (
+    answers.reduce((sum, answer) => sum + (SCORE_MAP[answer] || 0), 0) /
+    QUESTIONS.length
+  ).toFixed(2);
 
-    const { data, error } = await supabase
-      .from("pesquisas_caminhoneiro")
-      .insert([payload])
-      .select()
-      .single();
+  alert("Passou do cálculo");
 
-    if (error) {
-      alert("Erro ao salvar no Supabase: " + error.message);
-      return;
-    }
+  const payload = {
+    auth_user_id: authUser?.id || null,
+    entrevistador_nome: interviewer.nome,
+    entrevistado_nome: respondent.nome,
+    entrevistado_email: respondent.email,
+    entrevistado_celular: respondent.celular,
+    tipo_caminhao: respondent.tipoCaminhao,
+    medida_pneu: respondent.tipoPneu,
+    aplicacao_pneu: respondent.aplicacaoPneu,
+    fornecedor_principal: respondent.fornecedorPrincipal,
+    respostas: answers,
+    sugestao: suggestion,
+    media_geral: Number(average),
+    status: "concluida",
+  };
 
-    const record = {
-      id: data?.id || Date.now(),
-      interviewer: {
-        nome: interviewer.nome,
-      },
-      respondent,
-      answers,
-      suggestion,
-      average,
-      createdAt: data?.created_at
-        ? new Date(data.created_at).toLocaleString("pt-BR")
-        : new Date().toLocaleString("pt-BR"),
-      authUserId: data?.auth_user_id || authUser?.id || null,
-    };
+  alert("Payload montado");
 
-    setRecords((prev) => {
-      const updated = [record, ...prev];
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      return updated;
-    });
+  const { data, error } = await supabase
+    .from("pesquisas_caminhoneiro")
+    .insert([payload])
+    .select()
+    .single();
 
-    alert(`Pesquisa salva com sucesso para ${respondent.nome}. Média geral: ${average}`);
-    resetSurvey();
-    setScreen("home");
+  alert("Voltou do Supabase");
+
+  if (error) {
+    alert("Erro ao salvar no Supabase: " + error.message);
+    return;
   }
+
+  const record = {
+    id: data?.id || Date.now(),
+    interviewer: {
+      nome: interviewer.nome,
+    },
+    respondent,
+    answers,
+    suggestion,
+    average,
+    createdAt: data?.created_at
+      ? new Date(data.created_at).toLocaleString("pt-BR")
+      : new Date().toLocaleString("pt-BR"),
+    authUserId: data?.auth_user_id || authUser?.id || null,
+  };
+
+  setRecords((prev) => {
+    const updated = [record, ...prev];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    return updated;
+  });
+
+  alert(`Pesquisa salva com sucesso para ${respondent.nome}. Média geral: ${average}`);
+  resetSurvey();
+  setScreen("home");
+}
 
   function unlockReports() {
     if (reportPasswordInput !== REPORT_PASSWORD) {
@@ -945,17 +986,28 @@ export default function App() {
                   subtitle="Suas entrevistas ficam vinculadas ao seu usuário."
                 >
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    <PrimaryButton onClick={() => setScreen("identify")}>Nova pesquisa</PrimaryButton>
-                    <SecondaryButton
-                      onClick={() => {
-                        setReportPasswordInput("");
-                        setReportUnlocked(false);
-                        setReportMode("geral");
-                        setSelectedInterviewer("");
-                        setSelectedApplication("");
-                        setSearchTerm("");
-                        setScreen("reports");
-                      }}
+  <PrimaryButton onClick={() => setScreen("identify")}>Nova pesquisa</PrimaryButton>
+
+  <SecondaryButton
+    onClick={() => {
+      setReportPasswordInput("");
+      setReportUnlocked(false);
+      setReportMode("geral");
+      setSelectedInterviewer("");
+      setSelectedApplication("");
+      setSearchTerm("");
+      setScreen("reports");
+    }}
+  >
+    Dashboard e relatórios
+  </SecondaryButton>
+
+  <SecondaryButton onClick={deleteMyRecords}>
+    Apagar minhas pesquisas
+  </SecondaryButton>
+
+  <SecondaryButton onClick={handleLogout}>Sair</SecondaryButton>
+</div>
                     >
                       Dashboard e relatórios
                     </SecondaryButton>
