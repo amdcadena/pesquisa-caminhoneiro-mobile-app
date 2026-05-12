@@ -982,39 +982,38 @@ export default function App() {
             {screen === "home" && (
               <>
                 <Card
-                  title="Painel inicial"
-                  subtitle="Suas entrevistas ficam vinculadas ao seu usuário."
-                >
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-  <PrimaryButton onClick={() => setScreen("identify")}>Nova pesquisa</PrimaryButton>
+  title="Painel inicial"
+  subtitle="Suas entrevistas ficam vinculadas ao seu usuário."
+>
+  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+    <PrimaryButton onClick={() => setScreen("identify")}>
+      Nova pesquisa
+    </PrimaryButton>
 
-  <SecondaryButton
-    onClick={() => {
-      setReportPasswordInput("");
-      setReportUnlocked(false);
-      setReportMode("geral");
-      setSelectedInterviewer("");
-      setSelectedApplication("");
-      setSearchTerm("");
-      setScreen("reports");
-    }}
-  >
-    Dashboard e relatórios
-  </SecondaryButton>
+    <SecondaryButton
+      onClick={() => {
+        setReportPasswordInput("");
+        setReportUnlocked(false);
+        setReportMode("geral");
+        setSelectedInterviewer("");
+        setSelectedApplication("");
+        setSearchTerm("");
+        setScreen("reports");
+      }}
+    >
+      Dashboard e relatórios
+    </SecondaryButton>
 
-  <SecondaryButton onClick={deleteMyRecords}>
-    Apagar minhas pesquisas
-  </SecondaryButton>
+    <SecondaryButton onClick={deleteMyRecords}>
+      Apagar minhas pesquisas
+    </SecondaryButton>
 
-  <SecondaryButton onClick={handleLogout}>Sair</SecondaryButton>
-</div>
-                    >
-                      Dashboard e relatórios
-                    </SecondaryButton>
-                    <SecondaryButton onClick={handleLogout}>Sair</SecondaryButton>
-                  </div>
-                </Card>
-
+    <SecondaryButton onClick={handleLogout}>
+      Sair
+    </SecondaryButton>
+  </div>
+</Card>
+               
                 {visibleRecords.length > 0 && (
                   <Card
                     title="Resumo rápido"
