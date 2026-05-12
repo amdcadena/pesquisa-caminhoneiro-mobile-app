@@ -38,7 +38,7 @@ const TRUCK_TYPES = [
 ];
 
 const QUESTIONS = [
-  "O quanto seria útil ter um aplicativo voltado à manutenção de pneus?",
+  "Seria útil ter um aplicativo voltado à manutenção de pneus?",
   "O que você acha da possibilidade de acompanhar a pressão dos pneus pelo aplicativo?",
   "O que você acha de ter o controle do desgaste dos pneus dentro do aplicativo?",
   "O quanto seria útil receber alertas relacionados à manutenção preventiva?",
@@ -1087,7 +1087,7 @@ export default function App() {
 
             {screen === "survey" && (
               <Card
-                title={`Pergunta ${questionIndex + 1} de ${QUESTIONS.length}`}
+                title={`Pergunta ${questionIndex + 1} de ${QUESTIONS.length} | ${Math.round(progress)}%`}
                 subtitle="Escolha a opção que melhor representa a percepção do entrevistado."
                 right={
                   <div
