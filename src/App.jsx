@@ -54,7 +54,6 @@ const REPORT_PASSWORD = "magnum123";
 
 const emptyInterviewer = {
   nome: "",
-  email: "",
 };
 
 const emptyRespondent = {
@@ -353,6 +352,10 @@ function SimpleTable({ rows, hideInterviewer = false }) {
             <th style={{ padding: "14px 12px" }}>E-mail</th>
             <th style={{ padding: "14px 12px" }}>Medida</th>
             <th style={{ padding: "14px 12px" }}>Aplicação</th>
+<<<<<<< HEAD
+=======
+            <th style={{ padding: "14px 12px" }}>Tipo de caminhão</th>
+>>>>>>> 3aff931 (Atualiza perguntas e tipo de caminhao)
             {!hideInterviewer && <th style={{ padding: "14px 12px" }}>Entrevistador</th>}
             <th style={{ padding: "14px 12px" }}>Média</th>
           </tr>
@@ -366,6 +369,10 @@ function SimpleTable({ rows, hideInterviewer = false }) {
               <td style={{ padding: "14px 12px" }}>{record.respondent.email || "-"}</td>
               <td style={{ padding: "14px 12px" }}>{record.respondent.tipoPneu || "-"}</td>
               <td style={{ padding: "14px 12px" }}>{record.respondent.aplicacaoPneu || "-"}</td>
+<<<<<<< HEAD
+=======
+              <td style={{ padding: "14px 12px" }}>{record.respondent.tipoCaminhao || "-"}</td>
+>>>>>>> 3aff931 (Atualiza perguntas e tipo de caminhao)
               {!hideInterviewer && (
                 <td style={{ padding: "14px 12px" }}>{record.interviewer?.nome || "Oculto"}</td>
               )}
@@ -424,7 +431,6 @@ export default function App() {
           id: item.id,
           interviewer: {
             nome: item.entrevistador_nome || "",
-            email: item.entrevistador_email || "",
           },
           respondent: {
             nome: item.entrevistado_nome || "",
@@ -560,6 +566,7 @@ export default function App() {
             record.respondent.email,
             record.respondent.tipoPneu,
             record.respondent.aplicacaoPneu,
+            record.respondent.tipoCaminhao,
           ]
             .join(" ")
             .toLowerCase()
@@ -675,7 +682,10 @@ export default function App() {
     const payload = {
       auth_user_id: authUser?.id || null,
       entrevistador_nome: interviewer.nome,
+<<<<<<< HEAD
       entrevistador_email: interviewer.email,
+=======
+>>>>>>> 3aff931 (Atualiza perguntas e tipo de caminhao)
       entrevistado_nome: respondent.nome,
       entrevistado_email: respondent.email,
       entrevistado_celular: respondent.celular,
@@ -704,7 +714,10 @@ export default function App() {
       id: data?.id || Date.now(),
       interviewer: {
         nome: interviewer.nome,
+<<<<<<< HEAD
         email: interviewer.email,
+=======
+>>>>>>> 3aff931 (Atualiza perguntas e tipo de caminhao)
       },
       respondent,
       answers,
@@ -743,7 +756,6 @@ export default function App() {
 
     const headers = [
       "Entrevistador",
-      "E-mail entrevistador",
       "Nome entrevistado",
       "E-mail entrevistado",
       "Celular",
@@ -762,7 +774,6 @@ export default function App() {
 
     const rows = filteredRecords.map((record) => [
       reportMode === "geral" ? "Oculto" : record.interviewer?.nome || "",
-      reportMode === "geral" ? "Oculto" : record.interviewer?.email || "",
       record.respondent.nome,
       record.respondent.email,
       record.respondent.celular,
@@ -819,6 +830,7 @@ export default function App() {
         "Nome entrevistado",
         "Celular",
         "E-mail",
+        "Tipo de caminhão",
         "Medida do pneu",
         "Aplicação do pneu",
         "Data",
@@ -829,6 +841,7 @@ export default function App() {
         record.respondent.nome,
         record.respondent.celular,
         record.respondent.email,
+        record.respondent.tipoCaminhao,
         record.respondent.tipoPneu,
         record.respondent.aplicacaoPneu,
         record.createdAt,
@@ -995,10 +1008,14 @@ export default function App() {
 
             {screen === "identify" && (
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 3aff931 (Atualiza perguntas e tipo de caminhao)
               <Card
                 title="Nova pesquisa"
                 subtitle="Preencha os dados do entrevistador e do entrevistado antes de começar."
               >
+<<<<<<< HEAD
                 <div
                   style={{
                     display: "grid",
@@ -1204,6 +1221,115 @@ export default function App() {
               >
                 <div
                   style={{
+=======
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                    gap: 18,
+                  }}
+                >
+                  <div
+                    style={{
+                      background: "#101013",
+                      border: "1px solid #27272a",
+                      borderRadius: 20,
+                      padding: 18,
+                    }}
+                  >
+                    <SectionBadge>ENTREVISTADOR</SectionBadge>
+                    <Field
+                      label="Nome do entrevistador *"
+                      value={interviewer.nome}
+                      onChange={(e) => setInterviewer({ ...interviewer, nome: e.target.value })}
+                    />
+                  </div>
+
+                  <div
+                    style={{
+                      background: "#101013",
+                      border: "1px solid #27272a",
+                      borderRadius: 20,
+                      padding: 18,
+                    }}
+                  >
+                    <SectionBadge>ENTREVISTADO</SectionBadge>
+                    <Field
+                      label="Nome do entrevistado *"
+                      value={respondent.nome}
+                      onChange={(e) => setRespondent({ ...respondent, nome: e.target.value })}
+                    />
+                    <Field
+                      label="Celular"
+                      value={respondent.celular}
+                      onChange={(e) =>
+                        setRespondent({ ...respondent, celular: formatPhone(e.target.value) })
+                      }
+                      placeholder="(11) 99999-9999"
+                    />
+                    <Field
+                      label="E-mail"
+                      value={respondent.email}
+                      onChange={(e) => setRespondent({ ...respondent, email: e.target.value })}
+                      type="email"
+                    />
+                    <SelectField
+                      label="Tipo de caminhão"
+                      value={respondent.tipoCaminhao}
+                      onChange={(e) => setRespondent({ ...respondent, tipoCaminhao: e.target.value })}
+                      options={TRUCK_TYPES}
+                    />
+                    <Field
+                      label="Medida do pneu"
+                      value={respondent.tipoPneu}
+                      onChange={(e) => setRespondent({ ...respondent, tipoPneu: e.target.value })}
+                      placeholder="Ex.: 295/80R22.5"
+                    />
+                    <SelectField
+                      label="Aplicação do pneu *"
+                      value={respondent.aplicacaoPneu}
+                      onChange={(e) =>
+                        setRespondent({ ...respondent, aplicacaoPneu: e.target.value })
+                      }
+                      options={TIRE_APPLICATIONS}
+                    />
+                    <Field
+                      label="Principal fornecedor hoje"
+                      value={respondent.fornecedorPrincipal}
+                      onChange={(e) =>
+                        setRespondent({ ...respondent, fornecedorPrincipal: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
+                  <SecondaryButton onClick={() => setScreen("home")}>Voltar</SecondaryButton>
+                  <PrimaryButton onClick={startSurvey}>Iniciar pesquisa</PrimaryButton>
+                </div>
+              </Card>
+            )}
+
+            {screen === "survey" && (
+              <Card
+                title={`Pergunta ${questionIndex + 1} de ${QUESTIONS.length}`}
+                subtitle="Escolha a opção que melhor representa a percepção do entrevistado."
+                right={
+                  <div
+                    style={{
+                      minWidth: 90,
+                      textAlign: "right",
+                      color: "#fca5a5",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {Math.round(progress)}%
+                  </div>
+                }
+              >
+                <div
+                  style={{
+>>>>>>> 3aff931 (Atualiza perguntas e tipo de caminhao)
                     height: 12,
                     background: "#27272a",
                     borderRadius: 999,
@@ -1469,7 +1595,11 @@ export default function App() {
                               Entrevistador: {record.interviewer?.nome || "-"} • {record.createdAt}
                             </div>
                             <div style={{ color: "#d4d4d8", fontSize: 14, marginBottom: 8 }}>
+<<<<<<< HEAD
                               Aplicação: {record.respondent.aplicacaoPneu || "-"} • Medida: {record.respondent.tipoPneu || "-"}
+=======
+                              Aplicação: {record.respondent.aplicacaoPneu || "-"} • Medida: {record.respondent.tipoPneu || "-"} • Caminhão: {record.respondent.tipoCaminhao || "-"}
+>>>>>>> 3aff931 (Atualiza perguntas e tipo de caminhao)
                             </div>
                             <div style={{ lineHeight: 1.7 }}>{record.suggestion}</div>
                           </div>
