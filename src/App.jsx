@@ -25,6 +25,18 @@ const TIRE_APPLICATIONS = [
   "RD - Rodoviário Direcional",
 ];
 
+const TRUCK_TYPES = [
+  "Toco",
+  "Truck",
+  "Bitruck",
+  "Cavalo mecânico",
+  "Carreta",
+  "Bitrem",
+  "Rodotrem",
+  "Vanderleia",
+  "Outro",
+];
+
 const QUESTIONS = [
   "O quanto seria útil ter um aplicativo voltado à manutenção de pneus?",
   "O que você acha da possibilidade de acompanhar a pressão dos pneus pelo aplicativo?",
@@ -982,6 +994,7 @@ export default function App() {
             )}
 
             {screen === "identify" && (
+<<<<<<< HEAD
               <Card
                 title="Nova pesquisa"
                 subtitle="Preencha os dados do entrevistador e do entrevistado antes de começar."
@@ -1078,6 +1091,99 @@ export default function App() {
                 </div>
               </Card>
             )}
+=======
+               <Card
+    title="Nova pesquisa"
+    subtitle="Preencha os dados do entrevistador e do entrevistado antes de começar."
+  >
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+        gap: 18,
+      }}
+    >
+      <div
+        style={{
+          background: "#101013",
+          border: "1px solid #27272a",
+          borderRadius: 20,
+          padding: 18,
+        }}
+      >
+        <SectionBadge>ENTREVISTADOR</SectionBadge>
+        <Field
+          label="Nome do entrevistador *"
+          value={interviewer.nome}
+          onChange={(e) => setInterviewer({ ...interviewer, nome: e.target.value })}
+        />
+      </div>
+
+      <div
+        style={{
+          background: "#101013",
+          border: "1px solid #27272a",
+          borderRadius: 20,
+          padding: 18,
+        }}
+      >
+        <SectionBadge>ENTREVISTADO</SectionBadge>
+        <Field
+          label="Nome do entrevistado *"
+          value={respondent.nome}
+          onChange={(e) => setRespondent({ ...respondent, nome: e.target.value })}
+        />
+        <Field
+          label="Celular"
+          value={respondent.celular}
+          onChange={(e) =>
+            setRespondent({ ...respondent, celular: formatPhone(e.target.value) })
+          }
+          placeholder="(11) 99999-9999"
+        />
+        <Field
+          label="E-mail"
+          value={respondent.email}
+          onChange={(e) => setRespondent({ ...respondent, email: e.target.value })}
+          type="email"
+        />
+        <SelectField
+          label="Tipo de caminhão"
+          value={respondent.tipoCaminhao}
+          onChange={(e) => setRespondent({ ...respondent, tipoCaminhao: e.target.value })}
+          options={TRUCK_TYPES}
+        />
+        <Field
+          label="Medida do pneu"
+          value={respondent.tipoPneu}
+          onChange={(e) => setRespondent({ ...respondent, tipoPneu: e.target.value })}
+          placeholder="Ex.: 295/80R22.5"
+        />
+        <SelectField
+          label="Aplicação do pneu *"
+          value={respondent.aplicacaoPneu}
+          onChange={(e) =>
+            setRespondent({ ...respondent, aplicacaoPneu: e.target.value })
+          }
+          options={TIRE_APPLICATIONS}
+        />
+        <Field
+          label="Principal fornecedor hoje"
+          value={respondent.fornecedorPrincipal}
+          onChange={(e) =>
+            setRespondent({ ...respondent, fornecedorPrincipal: e.target.value })
+          }
+        />
+      </div>
+    </div>
+
+    <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
+      <SecondaryButton onClick={() => setScreen("home")}>Voltar</SecondaryButton>
+      <PrimaryButton onClick={startSurvey}>Iniciar pesquisa</PrimaryButton>
+    </div>
+  </Card>
+)}
+>>>>>>> c14eb33 (Ajusta tipo de caminhao e remove email do entrevistador)
 
             {screen === "survey" && (
               <Card
