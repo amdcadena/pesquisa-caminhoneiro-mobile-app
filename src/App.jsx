@@ -701,14 +701,14 @@ export default function App() {
   }
 
   async function finishSurvey() {
-  alert("Entrou no finishSurvey");
+  
 
   const average = (
     answers.reduce((sum, answer) => sum + (SCORE_MAP[answer] || 0), 0) /
     QUESTIONS.length
   ).toFixed(2);
 
-  alert("Passou do cálculo");
+  
 
   const payload = {
     auth_user_id: authUser?.id || null,
@@ -726,7 +726,7 @@ export default function App() {
     status: "concluida",
   };
 
-  alert("Payload montado");
+ 
 
   const { data, error } = await supabase
     .from("pesquisas_caminhoneiro")
@@ -734,7 +734,7 @@ export default function App() {
     .select()
     .single();
 
-  alert("Voltou do Supabase");
+  
 
   if (error) {
     alert("Erro ao salvar no Supabase: " + error.message);
