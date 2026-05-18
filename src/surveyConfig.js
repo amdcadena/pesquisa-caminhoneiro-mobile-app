@@ -181,10 +181,10 @@ export const SURVEY_CONFIG = {
     topApplication: "Aplicação mais frequente",
   },
 
-  options: ["Excelente", "Bom", "Razoável", "Pouco útil", "Inútil"],
+  options: ["Excelente", "Bom", "Razoavel", "Pouco útil", "Inútil"],
 
   questions: [
-    "Seria útil ter um aplicativo voltado à manutenção de pneus?",
+   
     "O que você acha da possibilidade de acompanhar a pressão dos pneus pelo aplicativo?",
     "O que você acha de ter o controle do desgaste dos pneus dentro do aplicativo?",
     "O quanto seria útil receber alertas relacionados à manutenção preventiva?",
