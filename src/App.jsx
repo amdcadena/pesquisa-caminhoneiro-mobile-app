@@ -25,8 +25,20 @@ const TIRE_APPLICATIONS = [
   "RD - Rodoviário Direcional",
 ];
 
+const TRUCK_TYPES = [
+  "Toco",
+  "Truck",
+  "Bitruck",
+  "Cavalo mecânico",
+  "Carreta",
+  "Bitrem",
+  "Rodotrem",
+  "Vanderleia",
+  "Outro",
+];
+
 const QUESTIONS = [
-  "O quanto seria útil ter um aplicativo voltado à manutenção de pneus?",
+  "Seria útil ter um aplicativo voltado à manutenção de pneus?",
   "O que você acha da possibilidade de acompanhar a pressão dos pneus pelo aplicativo?",
   "O que você acha de ter o controle do desgaste dos pneus dentro do aplicativo?",
   "O quanto seria útil receber alertas relacionados à manutenção preventiva?",
@@ -42,7 +54,6 @@ const REPORT_PASSWORD = "magnum123";
 
 const emptyInterviewer = {
   nome: "",
-  email: "",
 };
 
 const emptyRespondent = {
@@ -160,6 +171,7 @@ function MetricCard({ title, value, subtitle = "" }) {
     </div>
   );
 }
+
 
 function PrimaryButton({ children, onClick, full = false, type = "button" }) {
   return (
@@ -341,6 +353,7 @@ function SimpleTable({ rows, hideInterviewer = false }) {
             <th style={{ padding: "14px 12px" }}>E-mail</th>
             <th style={{ padding: "14px 12px" }}>Medida</th>
             <th style={{ padding: "14px 12px" }}>Aplicação</th>
+            <th style={{ padding: "14px 12px" }}>Tipo de caminhão</th>
             {!hideInterviewer && <th style={{ padding: "14px 12px" }}>Entrevistador</th>}
             <th style={{ padding: "14px 12px" }}>Média</th>
           </tr>
@@ -354,6 +367,7 @@ function SimpleTable({ rows, hideInterviewer = false }) {
               <td style={{ padding: "14px 12px" }}>{record.respondent.email || "-"}</td>
               <td style={{ padding: "14px 12px" }}>{record.respondent.tipoPneu || "-"}</td>
               <td style={{ padding: "14px 12px" }}>{record.respondent.aplicacaoPneu || "-"}</td>
+              <td style={{ padding: "14px 12px" }}>{record.respondent.tipoCaminhao || "-"}</td>
               {!hideInterviewer && (
                 <td style={{ padding: "14px 12px" }}>{record.interviewer?.nome || "Oculto"}</td>
               )}
@@ -386,6 +400,38 @@ export default function App() {
   const [loginPassword, setLoginPassword] = useState("");
   const [authLoading, setAuthLoading] = useState(true);
 
+  async function deleteMyRecords() {
+  if (!authUser?.id) {
+    alert("Usuário não identificado.");
+    return;
+  }
+
+  const confirmed = window.confirm(
+    "Tem certeza que deseja apagar todas as suas pesquisas? Essa ação não poderá ser desfeita."
+  );
+
+  if (!confirmed) return;
+
+  const { error } = await supabase
+    .from("pesquisas_caminhoneiro")
+    .delete()
+    .eq("auth_user_id", authUser.id);
+
+  if (error) {
+    alert("Erro ao apagar suas pesquisas: " + error.message);
+    return;
+  }
+
+  setRecords((prev) => {
+    const updated = prev.filter((record) => record.authUserId !== authUser.id);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    return updated;
+  });
+
+  alert("Suas pesquisas foram apagadas com sucesso.");
+  setScreen("home");
+}
+
   useEffect(() => {
     async function loadRecords() {
       try {
@@ -412,7 +458,6 @@ export default function App() {
           id: item.id,
           interviewer: {
             nome: item.entrevistador_nome || "",
-            email: item.entrevistador_email || "",
           },
           respondent: {
             nome: item.entrevistado_nome || "",
@@ -548,6 +593,7 @@ export default function App() {
             record.respondent.email,
             record.respondent.tipoPneu,
             record.respondent.aplicacaoPneu,
+            record.respondent.tipoCaminhao,
           ]
             .join(" ")
             .toLowerCase()
@@ -655,65 +701,71 @@ export default function App() {
   }
 
   async function finishSurvey() {
-    const average = (
-      answers.reduce((sum, answer) => sum + (SCORE_MAP[answer] || 0), 0) /
-      QUESTIONS.length
-    ).toFixed(2);
+  
 
-    const payload = {
-      auth_user_id: authUser?.id || null,
-      entrevistador_nome: interviewer.nome,
-      entrevistador_email: interviewer.email,
-      entrevistado_nome: respondent.nome,
-      entrevistado_email: respondent.email,
-      entrevistado_celular: respondent.celular,
-      tipo_caminhao: respondent.tipoCaminhao,
-      medida_pneu: respondent.tipoPneu,
-      aplicacao_pneu: respondent.aplicacaoPneu,
-      fornecedor_principal: respondent.fornecedorPrincipal,
-      respostas: answers,
-      sugestao: suggestion,
-      media_geral: Number(average),
-      status: "concluida",
-    };
+  const average = (
+    answers.reduce((sum, answer) => sum + (SCORE_MAP[answer] || 0), 0) /
+    QUESTIONS.length
+  ).toFixed(2);
 
-    const { data, error } = await supabase
-      .from("pesquisas_caminhoneiro")
-      .insert([payload])
-      .select()
-      .single();
+  
 
-    if (error) {
-      alert("Erro ao salvar no Supabase: " + error.message);
-      return;
-    }
+  const payload = {
+    auth_user_id: authUser?.id || null,
+    entrevistador_nome: interviewer.nome,
+    entrevistado_nome: respondent.nome,
+    entrevistado_email: respondent.email,
+    entrevistado_celular: respondent.celular,
+    tipo_caminhao: respondent.tipoCaminhao,
+    medida_pneu: respondent.tipoPneu,
+    aplicacao_pneu: respondent.aplicacaoPneu,
+    fornecedor_principal: respondent.fornecedorPrincipal,
+    respostas: answers,
+    sugestao: suggestion,
+    media_geral: Number(average),
+    status: "concluida",
+  };
 
-    const record = {
-      id: data?.id || Date.now(),
-      interviewer: {
-        nome: interviewer.nome,
-        email: interviewer.email,
-      },
-      respondent,
-      answers,
-      suggestion,
-      average,
-      createdAt: data?.created_at
-        ? new Date(data.created_at).toLocaleString("pt-BR")
-        : new Date().toLocaleString("pt-BR"),
-      authUserId: data?.auth_user_id || authUser?.id || null,
-    };
+ 
 
-    setRecords((prev) => {
-      const updated = [record, ...prev];
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      return updated;
-    });
+  const { data, error } = await supabase
+    .from("pesquisas_caminhoneiro")
+    .insert([payload])
+    .select()
+    .single();
 
-    alert(`Pesquisa salva com sucesso para ${respondent.nome}. Média geral: ${average}`);
-    resetSurvey();
-    setScreen("home");
+  
+
+  if (error) {
+    alert("Erro ao salvar no Supabase: " + error.message);
+    return;
   }
+
+  const record = {
+    id: data?.id || Date.now(),
+    interviewer: {
+      nome: interviewer.nome,
+    },
+    respondent,
+    answers,
+    suggestion,
+    average,
+    createdAt: data?.created_at
+      ? new Date(data.created_at).toLocaleString("pt-BR")
+      : new Date().toLocaleString("pt-BR"),
+    authUserId: data?.auth_user_id || authUser?.id || null,
+  };
+
+  setRecords((prev) => {
+    const updated = [record, ...prev];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    return updated;
+  });
+
+  alert(`Pesquisa salva com sucesso para ${respondent.nome}. Média geral: ${average}`);
+  resetSurvey();
+  setScreen("home");
+}
 
   function unlockReports() {
     if (reportPasswordInput !== REPORT_PASSWORD) {
@@ -731,7 +783,6 @@ export default function App() {
 
     const headers = [
       "Entrevistador",
-      "E-mail entrevistador",
       "Nome entrevistado",
       "E-mail entrevistado",
       "Celular",
@@ -750,7 +801,6 @@ export default function App() {
 
     const rows = filteredRecords.map((record) => [
       reportMode === "geral" ? "Oculto" : record.interviewer?.nome || "",
-      reportMode === "geral" ? "Oculto" : record.interviewer?.email || "",
       record.respondent.nome,
       record.respondent.email,
       record.respondent.celular,
@@ -807,6 +857,7 @@ export default function App() {
         "Nome entrevistado",
         "Celular",
         "E-mail",
+        "Tipo de caminhão",
         "Medida do pneu",
         "Aplicação do pneu",
         "Data",
@@ -817,6 +868,7 @@ export default function App() {
         record.respondent.nome,
         record.respondent.celular,
         record.respondent.email,
+        record.respondent.tipoCaminhao,
         record.respondent.tipoPneu,
         record.respondent.aplicacaoPneu,
         record.createdAt,
@@ -928,6 +980,7 @@ export default function App() {
         ) : (
           <>
             {screen === "home" && (
+<<<<<<< HEAD
   <>
     <Card>
       <div
@@ -1172,6 +1225,70 @@ export default function App() {
     )}
   </>
 )}
+=======
+              <>
+                <Card
+  title="Painel inicial"
+  subtitle="Suas entrevistas ficam vinculadas ao seu usuário."
+>
+  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+    <PrimaryButton onClick={() => setScreen("identify")}>
+      Nova pesquisa
+    </PrimaryButton>
+
+    <SecondaryButton
+      onClick={() => {
+        setReportPasswordInput("");
+        setReportUnlocked(false);
+        setReportMode("geral");
+        setSelectedInterviewer("");
+        setSelectedApplication("");
+        setSearchTerm("");
+        setScreen("reports");
+      }}
+    >
+      Dashboard e relatórios
+    </SecondaryButton>
+
+    <SecondaryButton onClick={deleteMyRecords}>
+      Apagar minhas pesquisas
+    </SecondaryButton>
+
+    <SecondaryButton onClick={handleLogout}>
+      Sair
+    </SecondaryButton>
+  </div>
+</Card>
+               
+                {visibleRecords.length > 0 && (
+                  <Card
+                    title="Resumo rápido"
+                    subtitle="Visão geral das entrevistas do usuário logado."
+                  >
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                        gap: 12,
+                      }}
+                    >
+                      <MetricCard title="Pesquisas" value={visibleRecords.length} subtitle="Da sua base" />
+                      <MetricCard
+                        title="Entrevistadores"
+                        value={interviewerGroups.length}
+                        subtitle="Na sua base"
+                      />
+                      <MetricCard
+                        title="Aplicações"
+                        value={new Set(visibleRecords.map((r) => r.respondent.aplicacaoPneu || "-")).size}
+                        subtitle="Tipos mapeados"
+                      />
+                    </div>
+                  </Card>
+                )}
+              </>
+            )}
+>>>>>>> 468f8ca4278bcf05e49befd5ebe927ba1732f2b9
 
             {screen === "identify" && (
               <Card
@@ -1198,12 +1315,6 @@ export default function App() {
                       label="Nome do entrevistador *"
                       value={interviewer.nome}
                       onChange={(e) => setInterviewer({ ...interviewer, nome: e.target.value })}
-                    />
-                    <Field
-                      label="E-mail do entrevistador"
-                      value={interviewer.email}
-                      onChange={(e) => setInterviewer({ ...interviewer, email: e.target.value })}
-                      type="email"
                     />
                   </div>
 
@@ -1235,10 +1346,11 @@ export default function App() {
                       onChange={(e) => setRespondent({ ...respondent, email: e.target.value })}
                       type="email"
                     />
-                    <Field
+                    <SelectField
                       label="Tipo de caminhão"
                       value={respondent.tipoCaminhao}
                       onChange={(e) => setRespondent({ ...respondent, tipoCaminhao: e.target.value })}
+                      options={TRUCK_TYPES}
                     />
                     <Field
                       label="Medida do pneu"
@@ -1273,7 +1385,7 @@ export default function App() {
 
             {screen === "survey" && (
               <Card
-                title={`Pergunta ${questionIndex + 1} de ${QUESTIONS.length}`}
+                title={`Pergunta ${questionIndex + 1} de ${QUESTIONS.length} | ${Math.round(progress)}%`}
                 subtitle="Escolha a opção que melhor representa a percepção do entrevistado."
                 right={
                   <div
@@ -1555,7 +1667,7 @@ export default function App() {
                               Entrevistador: {record.interviewer?.nome || "-"} • {record.createdAt}
                             </div>
                             <div style={{ color: "#d4d4d8", fontSize: 14, marginBottom: 8 }}>
-                              Aplicação: {record.respondent.aplicacaoPneu || "-"} • Medida: {record.respondent.tipoPneu || "-"}
+                              Aplicação: {record.respondent.aplicacaoPneu || "-"} • Medida: {record.respondent.tipoPneu || "-"} • Caminhão: {record.respondent.tipoCaminhao || "-"}
                             </div>
                             <div style={{ lineHeight: 1.7 }}>{record.suggestion}</div>
                           </div>
