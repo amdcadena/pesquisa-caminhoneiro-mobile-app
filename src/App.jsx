@@ -70,17 +70,14 @@ function formatPhone(value) {
   const digits = value.replace(/\D/g, "").slice(0, 11);
 
   if (digits.length <= 2) return digits;
-  if (digits.length <= 7) return "(" + digits.slice(0, 2) + ") " + digits.slice(2);
-
-  return "(" + digits.slice(0, 2) + ") " + digits.slice(2, 7) + "-" + digits.slice(7, 11);
+  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
 }
 
 function downloadCsv(filename, rows) {
   const csv = rows
     .map((row) =>
-      row
-        .map((cell) => `"${String(cell ?? "").replaceAll('"', '""')}"`)
-        .join(",")
+      row.map((cell) => `"${String(cell ?? "").replaceAll('"', '""')}"`).join(",")
     )
     .join("\n");
 
@@ -119,13 +116,7 @@ function Card({ children, title, subtitle, right }) {
         >
           <div>
             {title && (
-              <h2
-                style={{
-                  margin: 0,
-                  fontSize: 22,
-                  lineHeight: 1.2,
-                }}
-              >
+              <h2 style={{ margin: 0, fontSize: 22, lineHeight: 1.2 }}>
                 {title}
               </h2>
             )}
@@ -171,7 +162,6 @@ function MetricCard({ title, value, subtitle = "" }) {
     </div>
   );
 }
-
 
 function PrimaryButton({ children, onClick, full = false, type = "button" }) {
   return (
@@ -400,38 +390,6 @@ export default function App() {
   const [loginPassword, setLoginPassword] = useState("");
   const [authLoading, setAuthLoading] = useState(true);
 
-  async function deleteMyRecords() {
-  if (!authUser?.id) {
-    alert("Usuário não identificado.");
-    return;
-  }
-
-  const confirmed = window.confirm(
-    "Tem certeza que deseja apagar todas as suas pesquisas? Essa ação não poderá ser desfeita."
-  );
-
-  if (!confirmed) return;
-
-  const { error } = await supabase
-    .from("pesquisas_caminhoneiro")
-    .delete()
-    .eq("auth_user_id", authUser.id);
-
-  if (error) {
-    alert("Erro ao apagar suas pesquisas: " + error.message);
-    return;
-  }
-
-  setRecords((prev) => {
-    const updated = prev.filter((record) => record.authUserId !== authUser.id);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    return updated;
-  });
-
-  alert("Suas pesquisas foram apagadas com sucesso.");
-  setScreen("home");
-}
-
   useEffect(() => {
     async function loadRecords() {
       try {
@@ -556,21 +514,21 @@ export default function App() {
   }
 
   async function handleLogout() {
-  const { error } = await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
 
-  if (error) {
-    alert("Erro ao sair: " + error.message);
-    return;
+    if (error) {
+      alert("Erro ao sair: " + error.message);
+      return;
+    }
+
+    setAuthUser(null);
+    setScreen("home");
+    setReportUnlocked(false);
+    setReportPasswordInput("");
+    setSelectedInterviewer("");
+    setSelectedApplication("");
+    setSearchTerm("");
   }
-
-  setAuthUser(null);
-  setScreen("home");
-  setReportUnlocked(false);
-  setReportPasswordInput("");
-  setSelectedInterviewer("");
-  setSelectedApplication("");
-  setSearchTerm("");
-}
 
   const visibleRecords = useMemo(() => {
     if (!authUser) return [];
@@ -705,71 +663,62 @@ export default function App() {
   }
 
   async function finishSurvey() {
-  
+    const average = (
+      answers.reduce((sum, answer) => sum + (SCORE_MAP[answer] || 0), 0) / QUESTIONS.length
+    ).toFixed(2);
 
-  const average = (
-    answers.reduce((sum, answer) => sum + (SCORE_MAP[answer] || 0), 0) /
-    QUESTIONS.length
-  ).toFixed(2);
+    const payload = {
+      auth_user_id: authUser?.id || null,
+      entrevistador_nome: interviewer.nome,
+      entrevistado_nome: respondent.nome,
+      entrevistado_email: respondent.email,
+      entrevistado_celular: respondent.celular,
+      tipo_caminhao: respondent.tipoCaminhao,
+      medida_pneu: respondent.tipoPneu,
+      aplicacao_pneu: respondent.aplicacaoPneu,
+      fornecedor_principal: respondent.fornecedorPrincipal,
+      respostas: answers,
+      sugestao: suggestion,
+      media_geral: Number(average),
+      status: "concluida",
+    };
 
-  
+    const { data, error } = await supabase
+      .from("pesquisas_caminhoneiro")
+      .insert([payload])
+      .select()
+      .single();
 
-  const payload = {
-    auth_user_id: authUser?.id || null,
-    entrevistador_nome: interviewer.nome,
-    entrevistado_nome: respondent.nome,
-    entrevistado_email: respondent.email,
-    entrevistado_celular: respondent.celular,
-    tipo_caminhao: respondent.tipoCaminhao,
-    medida_pneu: respondent.tipoPneu,
-    aplicacao_pneu: respondent.aplicacaoPneu,
-    fornecedor_principal: respondent.fornecedorPrincipal,
-    respostas: answers,
-    sugestao: suggestion,
-    media_geral: Number(average),
-    status: "concluida",
-  };
+    if (error) {
+      alert("Erro ao salvar no Supabase: " + error.message);
+      return;
+    }
 
- 
+    const record = {
+      id: data?.id || Date.now(),
+      interviewer: {
+        nome: interviewer.nome,
+      },
+      respondent,
+      answers,
+      suggestion,
+      average,
+      createdAt: data?.created_at
+        ? new Date(data.created_at).toLocaleString("pt-BR")
+        : new Date().toLocaleString("pt-BR"),
+      authUserId: data?.auth_user_id || authUser?.id || null,
+    };
 
-  const { data, error } = await supabase
-    .from("pesquisas_caminhoneiro")
-    .insert([payload])
-    .select()
-    .single();
+    setRecords((prev) => {
+      const updated = [record, ...prev];
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      return updated;
+    });
 
-  
-
-  if (error) {
-    alert("Erro ao salvar no Supabase: " + error.message);
-    return;
+    alert(`Pesquisa salva com sucesso para ${respondent.nome}. Média geral: ${average}`);
+    resetSurvey();
+    setScreen("home");
   }
-
-  const record = {
-    id: data?.id || Date.now(),
-    interviewer: {
-      nome: interviewer.nome,
-    },
-    respondent,
-    answers,
-    suggestion,
-    average,
-    createdAt: data?.created_at
-      ? new Date(data.created_at).toLocaleString("pt-BR")
-      : new Date().toLocaleString("pt-BR"),
-    authUserId: data?.auth_user_id || authUser?.id || null,
-  };
-
-  setRecords((prev) => {
-    const updated = [record, ...prev];
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    return updated;
-  });
-
-  alert(`Pesquisa salva com sucesso para ${respondent.nome}. Média geral: ${average}`);
-  resetSurvey();
-  setScreen("home");
-}
 
   function unlockReports() {
     if (reportPasswordInput !== REPORT_PASSWORD) {
@@ -796,11 +745,7 @@ export default function App() {
       "Fornecedor principal",
       "Data",
       "Sugestão",
-      ...QUESTIONS.flatMap((q, i) => [
-        `Pergunta ${i + 1}`,
-        `Resposta ${i + 1}`,
-        `Nota ${i + 1}`,
-      ]),
+      ...QUESTIONS.flatMap((q, i) => [`Pergunta ${i + 1}`, `Resposta ${i + 1}`, `Nota ${i + 1}`]),
     ];
 
     const rows = filteredRecords.map((record) => [
@@ -814,11 +759,7 @@ export default function App() {
       record.respondent.fornecedorPrincipal,
       record.createdAt,
       record.suggestion,
-      ...QUESTIONS.flatMap((q, i) => [
-        q,
-        record.answers[i] || "",
-        SCORE_MAP[record.answers[i]] || "",
-      ]),
+      ...QUESTIONS.flatMap((q, i) => [q, record.answers[i] || "", SCORE_MAP[record.answers[i]] || ""]),
     ]);
 
     downloadCsv("respostas_detalhadas.csv", [headers, ...rows]);
@@ -913,12 +854,7 @@ export default function App() {
       }}
     >
       <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-        <div
-          style={{
-            marginBottom: 20,
-            padding: "20px 0 8px 0",
-          }}
-        >
+        <div style={{ marginBottom: 20, padding: "20px 0 8px 0" }}>
           <SectionBadge>MAGNUM TIRES • PESQUISA DIGITAL</SectionBadge>
           <h1
             style={{
@@ -959,75 +895,195 @@ export default function App() {
         </div>
 
         {!authUser ? (
-  <Card
-    title="Entrar no sistema"
-    subtitle="Use seu e-mail e senha de entrevistador para acessar a pesquisa."
-  >
-    <Field
-      label="E-mail"
-      value={loginEmail}
-      onChange={(e) => setLoginEmail(e.target.value)}
-      type="email"
-    />
+          <Card
+            title="Entrar no sistema"
+            subtitle="Use seu e-mail e senha de entrevistador para acessar a pesquisa."
+          >
+            <Field
+              label="E-mail"
+              value={loginEmail}
+              onChange={(e) => setLoginEmail(e.target.value)}
+              type="email"
+            />
 
-    <Field
-      label="Senha"
-      value={loginPassword}
-      onChange={(e) => setLoginPassword(e.target.value)}
-      type="password"
-    />
+            <Field
+              label="Senha"
+              value={loginPassword}
+              onChange={(e) => setLoginPassword(e.target.value)}
+              type="password"
+            />
 
-    <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
-      <PrimaryButton onClick={handleLogin}>Entrar</PrimaryButton>
-    </div>
-  </Card>
-) : (
-  <>
-    ...
-  </>
-)}
+            <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
+              <PrimaryButton onClick={handleLogin}>Entrar</PrimaryButton>
+            </div>
+          </Card>
+        ) : (
           <>
             {screen === "home" && (
-
               <>
-                <Card
-  title="Painel inicial"
-  subtitle="Suas entrevistas ficam vinculadas ao seu usuário."
->
-  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-    <PrimaryButton onClick={() => setScreen("identify")}>
-      Nova pesquisa
-    </PrimaryButton>
-
-    <SecondaryButton
-      onClick={() => {
-        setReportPasswordInput("");
-        setReportUnlocked(false);
-        setReportMode("geral");
-        setSelectedInterviewer("");
-        setSelectedApplication("");
-        setSearchTerm("");
-        setScreen("reports");
-      }}
-    >
-      Dashboard e relatórios
-    </SecondaryButton>
-
-    <SecondaryButton onClick={deleteMyRecords}>
-      Apagar minhas pesquisas
-    </SecondaryButton>
-
-    <SecondaryButton onClick={handleLogout}>
-      Sair
-    </SecondaryButton>
-  </div>
-</Card>
-               
-                {visibleRecords.length > 0 && (
-                  <Card
-                    title="Resumo rápido"
-                    subtitle="Visão geral das entrevistas do usuário logado."
+                <Card>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                      gap: 20,
+                      alignItems: "center",
+                    }}
                   >
+                    <div>
+                      <SectionBadge>PESQUISA + RELACIONAMENTO + APP</SectionBadge>
+
+                      <h2
+                        style={{
+                          margin: "0 0 12px 0",
+                          fontSize: 30,
+                          lineHeight: 1.1,
+                          letterSpacing: "-0.02em",
+                        }}
+                      >
+                        Uma forma mais inteligente de abrir conversa com o caminhoneiro
+                      </h2>
+
+                      <p
+                        style={{
+                          color: "#d4d4d8",
+                          fontSize: 16,
+                          lineHeight: 1.7,
+                          margin: 0,
+                          maxWidth: 620,
+                        }}
+                      >
+                        A pesquisa transforma a abordagem comercial em uma conversa útil,
+                        consultiva e menos invasiva. Em vez de começar vendendo, começamos
+                        ouvindo, entendendo a rotina do cliente e preparando o terreno para
+                        a próxima fase com o aplicativo.
+                      </p>
+
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: 10,
+                          flexWrap: "wrap",
+                          marginTop: 20,
+                        }}
+                      >
+                        <PrimaryButton onClick={() => setScreen("identify")}>
+                          Nova pesquisa
+                        </PrimaryButton>
+
+                        <SecondaryButton
+                          onClick={() => {
+                            setReportPasswordInput("");
+                            setReportUnlocked(false);
+                            setReportMode("geral");
+                            setSelectedInterviewer("");
+                            setSelectedApplication("");
+                            setSearchTerm("");
+                            setScreen("reports");
+                          }}
+                        >
+                          Dashboard e relatórios
+                        </SecondaryButton>
+
+                        <SecondaryButton onClick={handleLogout}>Sair</SecondaryButton>
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        background: "linear-gradient(180deg, #101013 0%, #0b0b0d 100%)",
+                        border: "1px solid #27272a",
+                        borderRadius: 22,
+                        padding: 20,
+                      }}
+                    >
+                      <div style={{ display: "grid", gap: 14 }}>
+                        <div
+                          style={{
+                            padding: 14,
+                            borderRadius: 18,
+                            background: "rgba(239,68,68,0.08)",
+                            border: "1px solid rgba(239,68,68,0.18)",
+                          }}
+                        >
+                          <div style={{ fontWeight: 700, marginBottom: 6 }}>Abordagem mais leve</div>
+                          <div style={{ color: "#d4d4d8", lineHeight: 1.5, fontSize: 14 }}>
+                            A entrada acontece por uma pesquisa útil, e não por uma oferta direta.
+                          </div>
+                        </div>
+
+                        <div
+                          style={{
+                            padding: 14,
+                            borderRadius: 18,
+                            background: "#09090b",
+                            border: "1px solid #27272a",
+                          }}
+                        >
+                          <div style={{ fontWeight: 700, marginBottom: 6 }}>Dados para a fase 2</div>
+                          <div style={{ color: "#d4d4d8", lineHeight: 1.5, fontSize: 14 }}>
+                            Cada resposta ajuda a identificar interesse, perfil, dor e potencial
+                            de relacionamento futuro.
+                          </div>
+                        </div>
+
+                        <div
+                          style={{
+                            padding: 14,
+                            borderRadius: 18,
+                            background: "#09090b",
+                            border: "1px solid #27272a",
+                          }}
+                        >
+                          <div style={{ fontWeight: 700, marginBottom: 6 }}>Valor antes da venda</div>
+                          <div style={{ color: "#d4d4d8", lineHeight: 1.5, fontSize: 14 }}>
+                            O aplicativo entra como solução para manutenção, controle e prevenção
+                            em um dos maiores custos do caminhoneiro: o pneu.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card
+                  title="Como essa estratégia funciona"
+                  subtitle="A pesquisa abre relacionamento, organiza dados e cria uma ponte para o aplicativo."
+                >
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                      gap: 12,
+                    }}
+                  >
+                    {[
+                      ["01", "Apresentar", "Mostrar a força da Magnum de forma curta, clara e profissional."],
+                      ["02", "Diagnosticar", "Entender se já conhece a marca, se já compra e qual o momento atual."],
+                      ["03", "Pesquisar", "Aplicar o formulário e captar dados importantes para evolução da jornada."],
+                      ["04", "Continuar", "Avançar para a fase 2 com mais contexto, mais permissão e mais chance de conexão."],
+                    ].map(([n, t, d]) => (
+                      <div
+                        key={n}
+                        style={{
+                          background: "#09090b",
+                          border: "1px solid #27272a",
+                          borderRadius: 20,
+                          padding: 18,
+                        }}
+                      >
+                        <div style={{ color: "#fca5a5", fontWeight: 800, fontSize: 13, marginBottom: 8 }}>
+                          {n}
+                        </div>
+                        <div style={{ fontWeight: 700, marginBottom: 6 }}>{t}</div>
+                        <div style={{ color: "#d4d4d8", fontSize: 14, lineHeight: 1.5 }}>{d}</div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+
+                {visibleRecords.length > 0 && (
+                  <Card title="Resumo rápido" subtitle="Indicadores da base do usuário logado.">
                     <div
                       style={{
                         display: "grid",
@@ -1035,12 +1091,8 @@ export default function App() {
                         gap: 12,
                       }}
                     >
-                      <MetricCard title="Pesquisas" value={visibleRecords.length} subtitle="Da sua base" />
-                      <MetricCard
-                        title="Entrevistadores"
-                        value={interviewerGroups.length}
-                        subtitle="Na sua base"
-                      />
+                      <MetricCard title="Pesquisas" value={visibleRecords.length} subtitle="Total da sua base" />
+                      <MetricCard title="Entrevistadores" value={interviewerGroups.length} subtitle="Na sua base" />
                       <MetricCard
                         title="Aplicações"
                         value={new Set(visibleRecords.map((r) => r.respondent.aplicacaoPneu || "-")).size}
@@ -1051,7 +1103,6 @@ export default function App() {
                 )}
               </>
             )}
->>>>>>> 468f8ca4278bcf05e49befd5ebe927ba1732f2b9
 
             {screen === "identify" && (
               <Card
@@ -1124,9 +1175,7 @@ export default function App() {
                     <SelectField
                       label="Aplicação do pneu *"
                       value={respondent.aplicacaoPneu}
-                      onChange={(e) =>
-                        setRespondent({ ...respondent, aplicacaoPneu: e.target.value })
-                      }
+                      onChange={(e) => setRespondent({ ...respondent, aplicacaoPneu: e.target.value })}
                       options={TIRE_APPLICATIONS}
                     />
                     <Field
@@ -1153,13 +1202,13 @@ export default function App() {
                 right={
                   <div
                     style={{
-                      minWidth: 90,
+                      minWidth: 110,
                       textAlign: "right",
                       color: "#fca5a5",
                       fontWeight: 700,
                     }}
                   >
-                    {Math.round(progress)}%
+                    {questionIndex + 1} / {QUESTIONS.length} - {Math.round(progress)}%
                   </div>
                 }
               >
@@ -1191,13 +1240,7 @@ export default function App() {
                     marginBottom: 18,
                   }}
                 >
-                  <h3
-                    style={{
-                      margin: 0,
-                      fontSize: 24,
-                      lineHeight: 1.4,
-                    }}
-                  >
+                  <h3 style={{ margin: 0, fontSize: 24, lineHeight: 1.4 }}>
                     {QUESTIONS[questionIndex]}
                   </h3>
                 </div>
