@@ -1259,124 +1259,169 @@ export default function App() {
 )}
 
             {screen === "survey" && (
-              <Card
-                title={`Pergunta ${questionIndex + 1} de ${QUESTIONS.length} | ${Math.round(progress)}%`}
-                subtitle="Escolha a opção que melhor representa a percepção do entrevistado."
-                right={
-                  <div
-                    style={{
-                      minWidth: 110,
-                      textAlign: "right",
-                      color: "#fca5a5",
-                      fontWeight: 700,
-                    }}
-                  >
-                    {questionIndex + 1} / {QUESTIONS.length} - {Math.round(progress)}%
-                  </div>
-                }
-              >
-                <div
-                  style={{
-                    height: 12,
-                    background: "#27272a",
-                    borderRadius: 999,
-                    overflow: "hidden",
-                    marginBottom: 24,
-                  }}
-                >
-                  <div
-                    style={{
-                      width: `${progress}%`,
-                      height: "100%",
-                      background: "linear-gradient(90deg, #ef4444 0%, #b91c1c 100%)",
-                      transition: "width 0.25s ease",
-                    }}
-                  />
-                </div>
+  <Card
+    title={`Pergunta ${questionIndex + 1} de ${QUESTIONS.length}`}
+    subtitle="Escolha a opção que melhor representa a percepção do entrevistado."
+    right={
+      <div
+        style={{
+          minWidth: 110,
+          textAlign: "right",
+          color: "#fca5a5",
+          fontWeight: 800,
+          fontSize: 15,
+        }}
+      >
+        {Math.round(progress)}%
+      </div>
+    }
+  >
+    <div
+      style={{
+        background: "#0b0b0d",
+        border: "1px solid #27272a",
+        borderRadius: 20,
+        padding: 16,
+        marginBottom: 20,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 12,
+          alignItems: "center",
+          flexWrap: "wrap",
+          marginBottom: 10,
+        }}
+      >
+        <div style={{ color: "#a1a1aa", fontSize: 14 }}>
+          Etapa atual da entrevista
+        </div>
+        <div style={{ color: "#d4d4d8", fontSize: 14, fontWeight: 700 }}>
+          {questionIndex + 1} / {QUESTIONS.length}
+        </div>
+      </div>
 
-                <div
-                  style={{
-                    background: "#101013",
-                    border: "1px solid #27272a",
-                    borderRadius: 20,
-                    padding: 20,
-                    marginBottom: 18,
-                  }}
-                >
-                  <h3 style={{ margin: 0, fontSize: 24, lineHeight: 1.4 }}>
-                    {QUESTIONS[questionIndex]}
-                  </h3>
-                </div>
+      <div
+        style={{
+          height: 14,
+          background: "#1a1a1d",
+          borderRadius: 999,
+          overflow: "hidden",
+          border: "1px solid #27272a",
+        }}
+      >
+        <div
+          style={{
+            width: `${progress}%`,
+            height: "100%",
+            background: "linear-gradient(90deg, #ef4444 0%, #b91c1c 100%)",
+            transition: "width 0.3s ease",
+            boxShadow: "0 0 18px rgba(239,68,68,0.25)",
+          }}
+        />
+      </div>
+    </div>
 
-                <div style={{ display: "grid", gap: 10 }}>
-                  {OPTIONS.map((option) => {
-                    const selected = answers[questionIndex] === option;
-                    return (
-                      <button
-                        key={option}
-                        onClick={() => {
-                          const updated = [...answers];
-                          updated[questionIndex] = option;
-                          setAnswers(updated);
-                        }}
-                        style={{
-                          textAlign: "left",
-                          padding: 18,
-                          borderRadius: 18,
-                          border: selected ? "1px solid #ef4444" : "1px solid #3f3f46",
-                          background: selected
-                            ? "linear-gradient(180deg, rgba(239,68,68,0.18) 0%, rgba(127,29,29,0.18) 100%)"
-                            : "#09090b",
-                          color: "white",
-                          cursor: "pointer",
-                          fontSize: 15,
-                          fontWeight: selected ? 700 : 500,
-                          boxShadow: selected ? "0 10px 20px rgba(127,29,29,0.18)" : "none",
-                        }}
-                      >
-                        {option}
-                      </button>
-                    );
-                  })}
-                </div>
+    <div
+      style={{
+        background: "linear-gradient(180deg, #111214 0%, #0b0b0d 100%)",
+        border: "1px solid #27272a",
+        borderRadius: 24,
+        padding: 22,
+        marginBottom: 18,
+      }}
+    >
+      <SectionBadge>PERGUNTA ATUAL</SectionBadge>
 
-                <div style={{ display: "flex", gap: 10, marginTop: 20, flexWrap: "wrap" }}>
-                  <SecondaryButton onClick={previousQuestion} disabled={questionIndex === 0}>
-                    Anterior
-                  </SecondaryButton>
-                  <PrimaryButton onClick={nextQuestion}>Próxima</PrimaryButton>
-                </div>
-              </Card>
-            )}
+      <h3
+        style={{
+          margin: 0,
+          fontSize: 26,
+          lineHeight: 1.45,
+          letterSpacing: "-0.01em",
+        }}
+      >
+        {QUESTIONS[questionIndex]}
+      </h3>
+    </div>
 
-            {screen === "suggestion" && (
-              <Card
-                title="Sugestão final"
-                subtitle="Registre aqui qualquer observação, melhoria ou funcionalidade sugerida."
-              >
-                <textarea
-                  value={suggestion}
-                  onChange={(e) => setSuggestion(e.target.value)}
-                  style={{
-                    width: "100%",
-                    minHeight: 180,
-                    borderRadius: 18,
-                    border: "1px solid #3f3f46",
-                    background: "#09090b",
-                    color: "white",
-                    padding: 16,
-                    fontSize: 15,
-                    boxSizing: "border-box",
-                    outline: "none",
-                  }}
-                />
-                <div style={{ display: "flex", gap: 10, marginTop: 18, flexWrap: "wrap" }}>
-                  <SecondaryButton onClick={() => setScreen("survey")}>Voltar</SecondaryButton>
-                  <PrimaryButton onClick={finishSurvey}>Finalizar pesquisa</PrimaryButton>
-                </div>
-              </Card>
-            )}
+    <div style={{ display: "grid", gap: 12 }}>
+      {OPTIONS.map((option) => {
+        const selected = answers[questionIndex] === option;
 
+        return (
+          <button
+            key={option}
+            onClick={() => {
+              const updated = [...answers];
+              updated[questionIndex] = option;
+              setAnswers(updated);
+            }}
+            style={{
+              textAlign: "left",
+              padding: 18,
+              borderRadius: 20,
+              border: selected ? "1px solid #ef4444" : "1px solid #3f3f46",
+              background: selected
+                ? "linear-gradient(180deg, rgba(239,68,68,0.20) 0%, rgba(127,29,29,0.16) 100%)"
+                : "linear-gradient(180deg, #0d0d10 0%, #09090b 100%)",
+              color: "white",
+              cursor: "pointer",
+              fontSize: 15,
+              fontWeight: selected ? 700 : 500,
+              boxShadow: selected ? "0 12px 24px rgba(127,29,29,0.22)" : "none",
+              transition: "all 0.2s ease",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+              }}
+            >
+              <div
+                style={{
+                  width: 18,
+                  height: 18,
+                  borderRadius: 999,
+                  border: selected ? "5px solid #ef4444" : "2px solid #71717a",
+                  background: selected ? "#fff" : "transparent",
+                  flexShrink: 0,
+                }}
+              />
+              <div>{option}</div>
+            </div>
+          </button>
+        );
+      })}
+    </div>
+
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        gap: 12,
+        marginTop: 22,
+        flexWrap: "wrap",
+        alignItems: "center",
+      }}
+    >
+      <div style={{ color: "#a1a1aa", fontSize: 14 }}>
+        Selecione uma opção para continuar.
+      </div>
+
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <SecondaryButton onClick={previousQuestion} disabled={questionIndex === 0}>
+          Anterior
+        </SecondaryButton>
+        <PrimaryButton onClick={nextQuestion}>Próxima</PrimaryButton>
+      </div>
+    </div>
+  </Card>
+)}
             {screen === "reports" && (
               <>
                 {!reportUnlocked ? (
