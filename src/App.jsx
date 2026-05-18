@@ -824,7 +824,7 @@ export default function App() {
           fontSize: 18,
         }}
       >
-        Carregando acesso...
+        {SURVEY_CONFIG.auth.loadingText}
       </div>
     );
   }
@@ -874,32 +874,34 @@ export default function App() {
                 fontWeight: 700,
               }}
             >
-              Logado como: {authUser.email}
+              {SURVEY_CONFIG.auth.loggedAsPrefix} {authUser.email}
             </p>
           )}
         </div>
 
         {!authUser ? (
           <Card
-            title="Entrar no sistema"
-            subtitle="Use seu e-mail e senha de entrevistador para acessar a pesquisa."
+            title={SURVEY_CONFIG.auth.loginTitle}
+            subtitle={SURVEY_CONFIG.auth.loginSubtitle}
           >
             <Field
-              label="E-mail"
+              label={SURVEY_CONFIG.auth.emailLabel}
               value={loginEmail}
               onChange={(e) => setLoginEmail(e.target.value)}
               type="email"
             />
 
             <Field
-              label="Senha"
+              label={SURVEY_CONFIG.auth.passwordLabel}
               value={loginPassword}
               onChange={(e) => setLoginPassword(e.target.value)}
               type="password"
             />
 
             <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
-              <PrimaryButton onClick={handleLogin}>Entrar</PrimaryButton>
+              <PrimaryButton onClick={handleLogin}>
+                {SURVEY_CONFIG.auth.loginButton}
+              </PrimaryButton>
             </div>
           </Card>
         ) : (
@@ -916,7 +918,7 @@ export default function App() {
                     }}
                   >
                     <div>
-                      <SectionBadge>PESQUISA + RELACIONAMENTO + APP</SectionBadge>
+                      <SectionBadge>{SURVEY_CONFIG.home.topBadge}</SectionBadge>
 
                       <h2
                         style={{
@@ -926,7 +928,7 @@ export default function App() {
                           letterSpacing: "-0.02em",
                         }}
                       >
-                        Uma forma mais inteligente de abrir conversa com o caminhoneiro
+                        {SURVEY_CONFIG.home.headline}
                       </h2>
 
                       <p
@@ -938,10 +940,7 @@ export default function App() {
                           maxWidth: 620,
                         }}
                       >
-                        A pesquisa transforma a abordagem comercial em uma conversa útil,
-                        consultiva e menos invasiva. Em vez de começar vendendo, começamos
-                        ouvindo, entendendo a rotina do cliente e preparando o terreno para
-                        a próxima fase com o aplicativo.
+                        {SURVEY_CONFIG.home.description}
                       </p>
 
                       <div
@@ -953,7 +952,7 @@ export default function App() {
                         }}
                       >
                         <PrimaryButton onClick={() => setScreen("identify")}>
-                          Nova pesquisa
+                          {SURVEY_CONFIG.buttons.newSurvey}
                         </PrimaryButton>
 
                         <SecondaryButton
@@ -967,10 +966,12 @@ export default function App() {
                             setScreen("reports");
                           }}
                         >
-                          Dashboard e relatórios
+                          {SURVEY_CONFIG.buttons.reports}
                         </SecondaryButton>
 
-                        <SecondaryButton onClick={handleLogout}>Sair</SecondaryButton>
+                        <SecondaryButton onClick={handleLogout}>
+                          {SURVEY_CONFIG.buttons.logout}
+                        </SecondaryButton>
                       </div>
                     </div>
 
@@ -983,57 +984,36 @@ export default function App() {
                       }}
                     >
                       <div style={{ display: "grid", gap: 14 }}>
-                        <div
-                          style={{
-                            padding: 14,
-                            borderRadius: 18,
-                            background: "rgba(239,68,68,0.08)",
-                            border: "1px solid rgba(239,68,68,0.18)",
-                          }}
-                        >
-                          <div style={{ fontWeight: 700, marginBottom: 6 }}>Abordagem mais leve</div>
-                          <div style={{ color: "#d4d4d8", lineHeight: 1.5, fontSize: 14 }}>
-                            A entrada acontece por uma pesquisa útil, e não por uma oferta direta.
+                        {SURVEY_CONFIG.home.cards.map((card) => (
+                          <div
+                            key={card.title}
+                            style={{
+                              padding: 14,
+                              borderRadius: 18,
+                              background:
+                                card.title === SURVEY_CONFIG.home.cards[0].title
+                                  ? "rgba(239,68,68,0.08)"
+                                  : "#09090b",
+                              border:
+                                card.title === SURVEY_CONFIG.home.cards[0].title
+                                  ? "1px solid rgba(239,68,68,0.18)"
+                                  : "1px solid #27272a",
+                            }}
+                          >
+                            <div style={{ fontWeight: 700, marginBottom: 6 }}>{card.title}</div>
+                            <div style={{ color: "#d4d4d8", lineHeight: 1.5, fontSize: 14 }}>
+                              {card.text}
+                            </div>
                           </div>
-                        </div>
-
-                        <div
-                          style={{
-                            padding: 14,
-                            borderRadius: 18,
-                            background: "#09090b",
-                            border: "1px solid #27272a",
-                          }}
-                        >
-                          <div style={{ fontWeight: 700, marginBottom: 6 }}>Dados para a fase 2</div>
-                          <div style={{ color: "#d4d4d8", lineHeight: 1.5, fontSize: 14 }}>
-                            Cada resposta ajuda a identificar interesse, perfil, dor e potencial
-                            de relacionamento futuro.
-                          </div>
-                        </div>
-
-                        <div
-                          style={{
-                            padding: 14,
-                            borderRadius: 18,
-                            background: "#09090b",
-                            border: "1px solid #27272a",
-                          }}
-                        >
-                          <div style={{ fontWeight: 700, marginBottom: 6 }}>Valor antes da venda</div>
-                          <div style={{ color: "#d4d4d8", lineHeight: 1.5, fontSize: 14 }}>
-                            O aplicativo entra como solução para manutenção, controle e prevenção
-                            em um dos maiores custos do caminhoneiro: o pneu.
-                          </div>
-                        </div>
+                        ))}
                       </div>
                     </div>
                   </div>
                 </Card>
 
                 <Card
-                  title="Como essa estratégia funciona"
-                  subtitle="A pesquisa abre relacionamento, organiza dados e cria uma ponte para o aplicativo."
+                  title={SURVEY_CONFIG.home.strategyTitle}
+                  subtitle={SURVEY_CONFIG.home.strategySubtitle}
                 >
                   <div
                     style={{
@@ -1042,14 +1022,9 @@ export default function App() {
                       gap: 12,
                     }}
                   >
-                    {[
-                      ["01", "Apresentar", "Mostrar a força da Magnum de forma curta, clara e profissional."],
-                      ["02", "Diagnosticar", "Entender se já conhece a marca, se já compra e qual o momento atual."],
-                      ["03", "Pesquisar", "Aplicar o formulário e captar dados importantes para evolução da jornada."],
-                      ["04", "Continuar", "Avançar para a fase 2 com mais contexto, mais permissão e mais chance de conexão."],
-                    ].map(([n, t, d]) => (
+                    {SURVEY_CONFIG.home.steps.map((step) => (
                       <div
-                        key={n}
+                        key={step.number}
                         style={{
                           background: "#09090b",
                           border: "1px solid #27272a",
@@ -1058,17 +1033,22 @@ export default function App() {
                         }}
                       >
                         <div style={{ color: "#fca5a5", fontWeight: 800, fontSize: 13, marginBottom: 8 }}>
-                          {n}
+                          {step.number}
                         </div>
-                        <div style={{ fontWeight: 700, marginBottom: 6 }}>{t}</div>
-                        <div style={{ color: "#d4d4d8", fontSize: 14, lineHeight: 1.5 }}>{d}</div>
+                        <div style={{ fontWeight: 700, marginBottom: 6 }}>{step.title}</div>
+                        <div style={{ color: "#d4d4d8", fontSize: 14, lineHeight: 1.5 }}>
+                          {step.text}
+                        </div>
                       </div>
                     ))}
                   </div>
                 </Card>
 
                 {visibleRecords.length > 0 && (
-                  <Card title="Resumo rápido" subtitle="Indicadores da base do usuário logado.">
+                  <Card
+                    title={SURVEY_CONFIG.home.summaryTitle}
+                    subtitle={SURVEY_CONFIG.home.summarySubtitle}
+                  >
                     <div
                       style={{
                         display: "grid",
@@ -1076,10 +1056,18 @@ export default function App() {
                         gap: 12,
                       }}
                     >
-                      <MetricCard title="Pesquisas" value={visibleRecords.length} subtitle="Total da sua base" />
-                      <MetricCard title="Entrevistadores" value={interviewerGroups.length} subtitle="Na sua base" />
                       <MetricCard
-                        title="Aplicações"
+                        title={SURVEY_CONFIG.metrics.surveys}
+                        value={visibleRecords.length}
+                        subtitle="Total da sua base"
+                      />
+                      <MetricCard
+                        title={SURVEY_CONFIG.metrics.interviewers}
+                        value={interviewerGroups.length}
+                        subtitle="Na sua base"
+                      />
+                      <MetricCard
+                        title={SURVEY_CONFIG.metrics.applications}
                         value={new Set(visibleRecords.map((r) => r.respondent.aplicacaoPneu || "-")).size}
                         subtitle="Tipos mapeados"
                       />
@@ -1091,8 +1079,8 @@ export default function App() {
 
             {screen === "identify" && (
               <Card
-                title="Nova pesquisa"
-                subtitle="Preencha os dados abaixo antes de iniciar a entrevista."
+                title={SURVEY_CONFIG.identify.title}
+                subtitle={SURVEY_CONFIG.identify.subtitle}
               >
                 <div
                   style={{
@@ -1103,10 +1091,11 @@ export default function App() {
                     marginBottom: 18,
                   }}
                 >
-                  <div style={{ fontWeight: 700, marginBottom: 6 }}>Antes de começar</div>
+                  <div style={{ fontWeight: 700, marginBottom: 6 }}>
+                    {SURVEY_CONFIG.identify.introTitle}
+                  </div>
                   <div style={{ color: "#d4d4d8", fontSize: 14, lineHeight: 1.6 }}>
-                    Esta etapa organiza a entrevista e garante que os dados fiquem corretamente vinculados ao
-                    entrevistador e ao perfil do caminhoneiro.
+                    {SURVEY_CONFIG.identify.introText}
                   </div>
                 </div>
 
@@ -1125,22 +1114,22 @@ export default function App() {
                       padding: 20,
                     }}
                   >
-                    <SectionBadge>QUEM APLICA</SectionBadge>
+                    <SectionBadge>{SURVEY_CONFIG.identify.interviewerBadge}</SectionBadge>
 
                     <div style={{ marginBottom: 10 }}>
                       <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 6 }}>
-                        Dados do entrevistador
+                        {SURVEY_CONFIG.identify.interviewerTitle}
                       </div>
                       <div style={{ color: "#a1a1aa", fontSize: 14, lineHeight: 1.5 }}>
-                        Identifique quem está realizando a pesquisa.
+                        {SURVEY_CONFIG.identify.interviewerText}
                       </div>
                     </div>
 
                     <Field
-                      label="Nome do entrevistador *"
+                      label={SURVEY_CONFIG.identify.interviewerNameLabel}
                       value={interviewer.nome}
                       onChange={(e) => setInterviewer({ ...interviewer, nome: e.target.value })}
-                      placeholder="Digite o nome de quem está aplicando"
+                      placeholder={SURVEY_CONFIG.identify.interviewerNamePlaceholder}
                     />
                   </div>
 
@@ -1152,57 +1141,57 @@ export default function App() {
                       padding: 20,
                     }}
                   >
-                    <SectionBadge>QUEM RESPONDE</SectionBadge>
+                    <SectionBadge>{SURVEY_CONFIG.identify.respondentBadge}</SectionBadge>
 
                     <div style={{ marginBottom: 10 }}>
                       <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 6 }}>
-                        Dados do entrevistado
+                        {SURVEY_CONFIG.identify.respondentTitle}
                       </div>
                       <div style={{ color: "#a1a1aa", fontSize: 14, lineHeight: 1.5 }}>
-                        Registre as informações principais para dar contexto à entrevista.
+                        {SURVEY_CONFIG.identify.respondentText}
                       </div>
                     </div>
 
                     <Field
-                      label="Nome do entrevistado *"
+                      label={SURVEY_CONFIG.identify.respondentNameLabel}
                       value={respondent.nome}
                       onChange={(e) => setRespondent({ ...respondent, nome: e.target.value })}
-                      placeholder="Digite o nome do caminhoneiro"
+                      placeholder={SURVEY_CONFIG.identify.respondentNamePlaceholder}
                     />
 
                     <Field
-                      label="Celular"
+                      label={SURVEY_CONFIG.identify.phoneLabel}
                       value={respondent.celular}
                       onChange={(e) =>
                         setRespondent({ ...respondent, celular: formatPhone(e.target.value) })
                       }
-                      placeholder="(11) 99999-9999"
+                      placeholder={SURVEY_CONFIG.identify.phonePlaceholder}
                     />
 
                     <Field
-                      label="E-mail"
+                      label={SURVEY_CONFIG.identify.emailLabel}
                       value={respondent.email}
                       onChange={(e) => setRespondent({ ...respondent, email: e.target.value })}
                       type="email"
-                      placeholder="nome@exemplo.com"
+                      placeholder={SURVEY_CONFIG.identify.emailPlaceholder}
                     />
 
                     <SelectField
-                      label="Tipo de caminhão"
+                      label={SURVEY_CONFIG.identify.truckTypeLabel}
                       value={respondent.tipoCaminhao}
                       onChange={(e) => setRespondent({ ...respondent, tipoCaminhao: e.target.value })}
                       options={TRUCK_TYPES}
                     />
 
                     <Field
-                      label="Medida do pneu"
+                      label={SURVEY_CONFIG.identify.tireSizeLabel}
                       value={respondent.tipoPneu}
                       onChange={(e) => setRespondent({ ...respondent, tipoPneu: e.target.value })}
-                      placeholder="Ex.: 295/80R22.5"
+                      placeholder={SURVEY_CONFIG.identify.tireSizePlaceholder}
                     />
 
                     <SelectField
-                      label="Aplicação do pneu *"
+                      label={SURVEY_CONFIG.identify.tireApplicationLabel}
                       value={respondent.aplicacaoPneu}
                       onChange={(e) =>
                         setRespondent({ ...respondent, aplicacaoPneu: e.target.value })
@@ -1211,12 +1200,12 @@ export default function App() {
                     />
 
                     <Field
-                      label="Principal fornecedor hoje"
+                      label={SURVEY_CONFIG.identify.supplierLabel}
                       value={respondent.fornecedorPrincipal}
                       onChange={(e) =>
                         setRespondent({ ...respondent, fornecedorPrincipal: e.target.value })
                       }
-                      placeholder="Ex.: marca ou fornecedor atual"
+                      placeholder={SURVEY_CONFIG.identify.supplierPlaceholder}
                     />
                   </div>
                 </div>
@@ -1232,12 +1221,16 @@ export default function App() {
                   }}
                 >
                   <div style={{ color: "#a1a1aa", fontSize: 14 }}>
-                    Campos com * são essenciais para iniciar a pesquisa.
+                    {SURVEY_CONFIG.identify.footerText}
                   </div>
 
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    <SecondaryButton onClick={() => setScreen("home")}>Voltar</SecondaryButton>
-                    <PrimaryButton onClick={startSurvey}>Iniciar pesquisa</PrimaryButton>
+                    <SecondaryButton onClick={() => setScreen("home")}>
+                      {SURVEY_CONFIG.identify.backButton}
+                    </SecondaryButton>
+                    <PrimaryButton onClick={startSurvey}>
+                      {SURVEY_CONFIG.identify.startButton}
+                    </PrimaryButton>
                   </div>
                 </div>
               </Card>
@@ -1246,7 +1239,7 @@ export default function App() {
             {screen === "survey" && (
               <Card
                 title={`Pergunta ${questionIndex + 1} de ${QUESTIONS.length}`}
-                subtitle="Escolha a opção que melhor representa a percepção do entrevistado."
+                subtitle={SURVEY_CONFIG.survey.subtitle}
                 right={
                   <div
                     style={{
@@ -1281,7 +1274,7 @@ export default function App() {
                     }}
                   >
                     <div style={{ color: "#a1a1aa", fontSize: 14 }}>
-                      Etapa atual da entrevista
+                      {SURVEY_CONFIG.survey.progressLabel}
                     </div>
                     <div style={{ color: "#d4d4d8", fontSize: 14, fontWeight: 700 }}>
                       {questionIndex + 1} / {QUESTIONS.length}
@@ -1318,7 +1311,7 @@ export default function App() {
                     marginBottom: 18,
                   }}
                 >
-                  <SectionBadge>PERGUNTA ATUAL</SectionBadge>
+                  <SectionBadge>{SURVEY_CONFIG.survey.currentQuestionBadge}</SectionBadge>
 
                   <h3
                     style={{
@@ -1395,14 +1388,16 @@ export default function App() {
                   }}
                 >
                   <div style={{ color: "#a1a1aa", fontSize: 14 }}>
-                    Selecione uma opção para continuar.
+                    {SURVEY_CONFIG.survey.footerText}
                   </div>
 
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                     <SecondaryButton onClick={previousQuestion} disabled={questionIndex === 0}>
-                      Anterior
+                      {SURVEY_CONFIG.survey.previousButton}
                     </SecondaryButton>
-                    <PrimaryButton onClick={nextQuestion}>Próxima</PrimaryButton>
+                    <PrimaryButton onClick={nextQuestion}>
+                      {SURVEY_CONFIG.survey.nextButton}
+                    </PrimaryButton>
                   </div>
                 </div>
               </Card>
@@ -1410,8 +1405,8 @@ export default function App() {
 
             {screen === "suggestion" && (
               <Card
-                title="Sugestão final"
-                subtitle="Registre aqui qualquer observação, melhoria ou funcionalidade sugerida."
+                title={SURVEY_CONFIG.suggestion.title}
+                subtitle={SURVEY_CONFIG.suggestion.subtitle}
               >
                 <textarea
                   value={suggestion}
@@ -1430,8 +1425,12 @@ export default function App() {
                   }}
                 />
                 <div style={{ display: "flex", gap: 10, marginTop: 18, flexWrap: "wrap" }}>
-                  <SecondaryButton onClick={() => setScreen("survey")}>Voltar</SecondaryButton>
-                  <PrimaryButton onClick={finishSurvey}>Finalizar pesquisa</PrimaryButton>
+                  <SecondaryButton onClick={() => setScreen("survey")}>
+                    {SURVEY_CONFIG.suggestion.backButton}
+                  </SecondaryButton>
+                  <PrimaryButton onClick={finishSurvey}>
+                    {SURVEY_CONFIG.suggestion.finishButton}
+                  </PrimaryButton>
                 </div>
               </Card>
             )}
@@ -1440,37 +1439,49 @@ export default function App() {
               <>
                 {!reportUnlocked ? (
                   <Card
-                    title="Acesso ao dashboard"
-                    subtitle="Área protegida por senha para leitura dos seus resultados."
+                    title={SURVEY_CONFIG.reports.accessTitle}
+                    subtitle={SURVEY_CONFIG.reports.accessSubtitle}
                   >
                     <Field
-                      label="Senha de acesso"
+                      label={SURVEY_CONFIG.reports.passwordLabel}
                       value={reportPasswordInput}
                       onChange={(e) => setReportPasswordInput(e.target.value)}
                       type="password"
                     />
                     <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
-                      <SecondaryButton onClick={() => setScreen("home")}>Voltar</SecondaryButton>
-                      <PrimaryButton onClick={unlockReports}>Entrar</PrimaryButton>
+                      <SecondaryButton onClick={() => setScreen("home")}>
+                        {SURVEY_CONFIG.reports.backButton}
+                      </SecondaryButton>
+                      <PrimaryButton onClick={unlockReports}>
+                        {SURVEY_CONFIG.reports.accessButton}
+                      </PrimaryButton>
                     </div>
                   </Card>
                 ) : (
                   <>
                     <Card
-                      title="Dashboard da pesquisa"
-                      subtitle="Relatórios visuais filtrados apenas para o usuário logado."
+                      title={SURVEY_CONFIG.reports.dashboardTitle}
+                      subtitle={SURVEY_CONFIG.reports.dashboardSubtitle}
                     >
                       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                        <SecondaryButton onClick={() => setScreen("home")}>Voltar</SecondaryButton>
-                        <PrimaryButton onClick={exportDetailedCsv}>Exportar detalhado</PrimaryButton>
-                        <SecondaryButton onClick={exportSummaryCsv}>Exportar resumo</SecondaryButton>
-                        <SecondaryButton onClick={exportSuggestionsCsv}>Exportar sugestões</SecondaryButton>
+                        <SecondaryButton onClick={() => setScreen("home")}>
+                          {SURVEY_CONFIG.reports.backButton}
+                        </SecondaryButton>
+                        <PrimaryButton onClick={exportDetailedCsv}>
+                          {SURVEY_CONFIG.reports.exportDetailedButton}
+                        </PrimaryButton>
+                        <SecondaryButton onClick={exportSummaryCsv}>
+                          {SURVEY_CONFIG.reports.exportSummaryButton}
+                        </SecondaryButton>
+                        <SecondaryButton onClick={exportSuggestionsCsv}>
+                          {SURVEY_CONFIG.reports.exportSuggestionsButton}
+                        </SecondaryButton>
                       </div>
                     </Card>
 
                     <Card
-                      title="Filtros"
-                      subtitle="Refine a visualização por modo, entrevistador, aplicação ou lead."
+                      title={SURVEY_CONFIG.reports.filtersTitle}
+                      subtitle={SURVEY_CONFIG.reports.filtersSubtitle}
                     >
                       <div
                         style={{
@@ -1512,8 +1523,8 @@ export default function App() {
                     </Card>
 
                     <Card
-                      title="Indicadores"
-                      subtitle="Leitura rápida dos principais números da sua base filtrada."
+                      title={SURVEY_CONFIG.reports.indicatorsTitle}
+                      subtitle={SURVEY_CONFIG.reports.indicatorsSubtitle}
                     >
                       <div
                         style={{
@@ -1522,27 +1533,42 @@ export default function App() {
                           gap: 12,
                         }}
                       >
-                        <MetricCard title="Pesquisas filtradas" value={dashboardSummary.total} subtitle="Base atual" />
-                        <MetricCard title="Média geral" value={dashboardSummary.avg} subtitle="Das respostas filtradas" />
                         <MetricCard
-                          title="Entrevistadores ativos"
+                          title={SURVEY_CONFIG.metrics.filteredSurveys}
+                          value={dashboardSummary.total}
+                          subtitle="Base atual"
+                        />
+                        <MetricCard
+                          title={SURVEY_CONFIG.metrics.average}
+                          value={dashboardSummary.avg}
+                          subtitle="Das respostas filtradas"
+                        />
+                        <MetricCard
+                          title={SURVEY_CONFIG.metrics.activeInterviewers}
                           value={dashboardSummary.interviewers}
                           subtitle="Na sua base"
                         />
-                        <MetricCard title="Aplicação mais frequente" value={dashboardSummary.topApplication} />
+                        <MetricCard
+                          title={SURVEY_CONFIG.metrics.topApplication}
+                          value={dashboardSummary.topApplication}
+                        />
                       </div>
                     </Card>
 
                     <Card
-                      title={reportMode === "geral" ? "Leads entrevistados" : "Minhas entrevistas"}
-                      subtitle="Tabela consolidada das entrevistas do usuário logado."
+                      title={
+                        reportMode === "geral"
+                          ? SURVEY_CONFIG.reports.tableTitleGeneral
+                          : SURVEY_CONFIG.reports.tableTitleUser
+                      }
+                      subtitle={SURVEY_CONFIG.reports.tableSubtitle}
                     >
                       <SimpleTable rows={filteredRecords} hideInterviewer={false} />
                     </Card>
 
                     <Card
-                      title="Resumo por pergunta"
-                      subtitle="Consolidação das respostas das suas entrevistas."
+                      title={SURVEY_CONFIG.reports.summaryTitle}
+                      subtitle={SURVEY_CONFIG.reports.summarySubtitle}
                     >
                       {summary.map((item, index) => (
                         <div
@@ -1563,8 +1589,8 @@ export default function App() {
                     </Card>
 
                     <Card
-                      title="Sugestões captadas"
-                      subtitle="Lista das observações abertas registradas nas suas entrevistas."
+                      title={SURVEY_CONFIG.reports.suggestionsTitle}
+                      subtitle={SURVEY_CONFIG.reports.suggestionsSubtitle}
                     >
                       {filteredRecords.filter((r) => r.suggestion?.trim()).length === 0 && (
                         <div
@@ -1576,7 +1602,7 @@ export default function App() {
                             color: "#a1a1aa",
                           }}
                         >
-                          Ainda não há sugestões registradas com os filtros atuais.
+                          {SURVEY_CONFIG.reports.emptySuggestions}
                         </div>
                       )}
 
