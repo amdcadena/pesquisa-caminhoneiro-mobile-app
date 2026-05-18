@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "./supabaseClient";
-
-const OPTIONS = ["Excelente", "Bom", "Razoável", "Pouco útil", "Inútil"];
+import { SURVEY_CONFIG } from "./surveyConfig";
 
 const SCORE_MAP = {
   Excelente: 5,
@@ -35,18 +34,6 @@ const TRUCK_TYPES = [
   "Rodotrem",
   "Vanderleia",
   "Outro",
-];
-
-const QUESTIONS = [
-  "Seria útil ter um aplicativo voltado à manutenção de pneus?",
-  "O que você acha da possibilidade de acompanhar a pressão dos pneus pelo aplicativo?",
-  "O que você acha de ter o controle do desgaste dos pneus dentro do aplicativo?",
-  "O quanto seria útil receber alertas relacionados à manutenção preventiva?",
-  "O que você acha de contar com uma lista rápida de checagem dos pneus antes das viagens?",
-  "O quanto seria útil registrar no aplicativo as trocas e os rodízios dos pneus?",
-  "Como você vê a possibilidade de receber uma versão do aplicativo para testes e uso, sem custos?",
-  "O quanto seria útil contar com o apoio de um profissional para orientar e tirar dúvidas sobre pneus?",
-  "O quanto você considera importante o uso das redes sociais para orientar caminhoneiros com vídeos e dicas sobre pneus?",
 ];
 
 const STORAGE_KEY = "pesquisa-caminhoneiro-web";
@@ -374,7 +361,7 @@ export default function App() {
   const [screen, setScreen] = useState("home");
   const [interviewer, setInterviewer] = useState(emptyInterviewer);
   const [respondent, setRespondent] = useState(emptyRespondent);
-  const [answers, setAnswers] = useState(Array(QUESTIONS.length).fill(""));
+  const [answers, setAnswers] = useState(Array(SURVEY_CONFIG.questions.length).fill(""));
   const [questionIndex, setQuestionIndex] = useState(0);
   const [suggestion, setSuggestion] = useState("");
   const [records, setRecords] = useState([]);
@@ -389,6 +376,9 @@ export default function App() {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [authLoading, setAuthLoading] = useState(true);
+
+  const QUESTIONS = SURVEY_CONFIG.questions;
+  const OPTIONS = SURVEY_CONFIG.options;
 
   useEffect(() => {
     async function loadRecords() {
@@ -612,12 +602,12 @@ export default function App() {
         inutil: selectedAnswers.filter((a) => a === "Inútil").length,
       };
     });
-  }, [filteredRecords]);
+  }, [filteredRecords, QUESTIONS]);
 
   function resetSurvey() {
     setInterviewer(emptyInterviewer);
     setRespondent(emptyRespondent);
-    setAnswers(Array(QUESTIONS.length).fill(""));
+    setAnswers(Array(SURVEY_CONFIG.questions.length).fill(""));
     setQuestionIndex(0);
     setSuggestion("");
   }
@@ -860,7 +850,7 @@ export default function App() {
               letterSpacing: "-0.02em",
             }}
           >
-            Pesquisa do Caminhoneiro
+            {SURVEY_CONFIG.title}
           </h1>
           <p
             style={{
@@ -872,8 +862,7 @@ export default function App() {
               maxWidth: 720,
             }}
           >
-            Coleta estruturada para avaliar o interesse no aplicativo, mapear perfil do entrevistado
-            e consolidar informações úteis para análise comercial e de produto.
+            {SURVEY_CONFIG.subtitle}
           </p>
           {authUser && (
             <p
@@ -1053,81 +1042,33 @@ export default function App() {
                       gap: 12,
                     }}
                   >
-                    <div
-                      style={{
-                        background: "#09090b",
-                        border: "1px solid #27272a",
-                        borderRadius: 20,
-                        padding: 18,
-                      }}
-                    >
-                      <div style={{ color: "#fca5a5", fontWeight: 800, fontSize: 13, marginBottom: 8 }}>
-                        01
+                    {[
+                      ["01", "Apresentar", "Mostrar a força da Magnum de forma curta, clara e profissional."],
+                      ["02", "Diagnosticar", "Entender se já conhece a marca, se já compra e qual o momento atual."],
+                      ["03", "Pesquisar", "Aplicar o formulário e captar dados importantes para evolução da jornada."],
+                      ["04", "Continuar", "Avançar para a fase 2 com mais contexto, mais permissão e mais chance de conexão."],
+                    ].map(([n, t, d]) => (
+                      <div
+                        key={n}
+                        style={{
+                          background: "#09090b",
+                          border: "1px solid #27272a",
+                          borderRadius: 20,
+                          padding: 18,
+                        }}
+                      >
+                        <div style={{ color: "#fca5a5", fontWeight: 800, fontSize: 13, marginBottom: 8 }}>
+                          {n}
+                        </div>
+                        <div style={{ fontWeight: 700, marginBottom: 6 }}>{t}</div>
+                        <div style={{ color: "#d4d4d8", fontSize: 14, lineHeight: 1.5 }}>{d}</div>
                       </div>
-                      <div style={{ fontWeight: 700, marginBottom: 6 }}>Apresentar</div>
-                      <div style={{ color: "#d4d4d8", fontSize: 14, lineHeight: 1.5 }}>
-                        Mostrar a força da Magnum de forma curta, clara e profissional.
-                      </div>
-                    </div>
-
-                    <div
-                      style={{
-                        background: "#09090b",
-                        border: "1px solid #27272a",
-                        borderRadius: 20,
-                        padding: 18,
-                      }}
-                    >
-                      <div style={{ color: "#fca5a5", fontWeight: 800, fontSize: 13, marginBottom: 8 }}>
-                        02
-                      </div>
-                      <div style={{ fontWeight: 700, marginBottom: 6 }}>Diagnosticar</div>
-                      <div style={{ color: "#d4d4d8", fontSize: 14, lineHeight: 1.5 }}>
-                        Entender se já conhece a marca, se já compra e qual o momento atual.
-                      </div>
-                    </div>
-
-                    <div
-                      style={{
-                        background: "#09090b",
-                        border: "1px solid #27272a",
-                        borderRadius: 20,
-                        padding: 18,
-                      }}
-                    >
-                      <div style={{ color: "#fca5a5", fontWeight: 800, fontSize: 13, marginBottom: 8 }}>
-                        03
-                      </div>
-                      <div style={{ fontWeight: 700, marginBottom: 6 }}>Pesquisar</div>
-                      <div style={{ color: "#d4d4d8", fontSize: 14, lineHeight: 1.5 }}>
-                        Aplicar o formulário e captar dados importantes para evolução da jornada.
-                      </div>
-                    </div>
-
-                    <div
-                      style={{
-                        background: "#09090b",
-                        border: "1px solid #27272a",
-                        borderRadius: 20,
-                        padding: 18,
-                      }}
-                    >
-                      <div style={{ color: "#fca5a5", fontWeight: 800, fontSize: 13, marginBottom: 8 }}>
-                        04
-                      </div>
-                      <div style={{ fontWeight: 700, marginBottom: 6 }}>Continuar</div>
-                      <div style={{ color: "#d4d4d8", fontSize: 14, lineHeight: 1.5 }}>
-                        Avançar para a fase 2 com mais contexto, mais permissão e mais chance de conexão.
-                      </div>
-                    </div>
+                    ))}
                   </div>
                 </Card>
 
                 {visibleRecords.length > 0 && (
-                  <Card
-                    title="Resumo rápido"
-                    subtitle="Indicadores da base do usuário logado."
-                  >
+                  <Card title="Resumo rápido" subtitle="Indicadores da base do usuário logado.">
                     <div
                       style={{
                         display: "grid",
@@ -1135,16 +1076,8 @@ export default function App() {
                         gap: 12,
                       }}
                     >
-                      <MetricCard
-                        title="Pesquisas"
-                        value={visibleRecords.length}
-                        subtitle="Total da sua base"
-                      />
-                      <MetricCard
-                        title="Entrevistadores"
-                        value={interviewerGroups.length}
-                        subtitle="Na sua base"
-                      />
+                      <MetricCard title="Pesquisas" value={visibleRecords.length} subtitle="Total da sua base" />
+                      <MetricCard title="Entrevistadores" value={interviewerGroups.length} subtitle="Na sua base" />
                       <MetricCard
                         title="Aplicações"
                         value={new Set(visibleRecords.map((r) => r.respondent.aplicacaoPneu || "-")).size}
