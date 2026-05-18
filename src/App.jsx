@@ -556,17 +556,21 @@ export default function App() {
   }
 
   async function handleLogout() {
-    const { error } = await supabase.auth.signOut();
+  const { error } = await supabase.auth.signOut();
 
-    if (error) {
-      alert("Erro ao sair: " + error.message);
-      return;
-    }
-
-    setScreen("home");
-    setReportUnlocked(false);
-    alert("Sessão encerrada.");
+  if (error) {
+    alert("Erro ao sair: " + error.message);
+    return;
   }
+
+  setAuthUser(null);
+  setScreen("home");
+  setReportUnlocked(false);
+  setReportPasswordInput("");
+  setSelectedInterviewer("");
+  setSelectedApplication("");
+  setSearchTerm("");
+}
 
   const visibleRecords = useMemo(() => {
     if (!authUser) return [];
@@ -955,29 +959,33 @@ export default function App() {
         </div>
 
         {!authUser ? (
-          <Card
-            title="Entrar no sistema"
-            subtitle="Use seu e-mail e senha de entrevistador para acessar a pesquisa."
-          >
-            <Field
-              label="E-mail"
-              value={loginEmail}
-              onChange={(e) => setLoginEmail(e.target.value)}
-              type="email"
-            />
+  <Card
+    title="Entrar no sistema"
+    subtitle="Use seu e-mail e senha de entrevistador para acessar a pesquisa."
+  >
+    <Field
+      label="E-mail"
+      value={loginEmail}
+      onChange={(e) => setLoginEmail(e.target.value)}
+      type="email"
+    />
 
-            <Field
-              label="Senha"
-              value={loginPassword}
-              onChange={(e) => setLoginPassword(e.target.value)}
-              type="password"
-            />
+    <Field
+      label="Senha"
+      value={loginPassword}
+      onChange={(e) => setLoginPassword(e.target.value)}
+      type="password"
+    />
 
-            <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
-              <PrimaryButton onClick={handleLogin}>Entrar</PrimaryButton>
-            </div>
-          </Card>
-        ) : (
+    <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
+      <PrimaryButton onClick={handleLogin}>Entrar</PrimaryButton>
+    </div>
+  </Card>
+) : (
+  <>
+    ...
+  </>
+)}
           <>
             {screen === "home" && (
 
