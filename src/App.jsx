@@ -1105,95 +1105,158 @@ export default function App() {
             )}
 
             {screen === "identify" && (
-              <Card
-                title="Nova pesquisa"
-                subtitle="Preencha os dados do entrevistador e do entrevistado antes de começar."
-              >
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-                    gap: 18,
-                  }}
-                >
-                  <div
-                    style={{
-                      background: "#101013",
-                      border: "1px solid #27272a",
-                      borderRadius: 20,
-                      padding: 18,
-                    }}
-                  >
-                    <SectionBadge>ENTREVISTADOR</SectionBadge>
-                    <Field
-                      label="Nome do entrevistador *"
-                      value={interviewer.nome}
-                      onChange={(e) => setInterviewer({ ...interviewer, nome: e.target.value })}
-                    />
-                  </div>
+  <Card
+    title="Nova pesquisa"
+    subtitle="Preencha os dados abaixo antes de iniciar a entrevista."
+  >
+    <div
+      style={{
+        background: "linear-gradient(180deg, rgba(239,68,68,0.08) 0%, rgba(239,68,68,0.03) 100%)",
+        border: "1px solid rgba(239,68,68,0.15)",
+        borderRadius: 20,
+        padding: 16,
+        marginBottom: 18,
+      }}
+    >
+      <div style={{ fontWeight: 700, marginBottom: 6 }}>Antes de começar</div>
+      <div style={{ color: "#d4d4d8", fontSize: 14, lineHeight: 1.6 }}>
+        Esta etapa organiza a entrevista e garante que os dados fiquem corretamente vinculados ao
+        entrevistador e ao perfil do caminhoneiro.
+      </div>
+    </div>
 
-                  <div
-                    style={{
-                      background: "#101013",
-                      border: "1px solid #27272a",
-                      borderRadius: 20,
-                      padding: 18,
-                    }}
-                  >
-                    <SectionBadge>ENTREVISTADO</SectionBadge>
-                    <Field
-                      label="Nome do entrevistado *"
-                      value={respondent.nome}
-                      onChange={(e) => setRespondent({ ...respondent, nome: e.target.value })}
-                    />
-                    <Field
-                      label="Celular"
-                      value={respondent.celular}
-                      onChange={(e) =>
-                        setRespondent({ ...respondent, celular: formatPhone(e.target.value) })
-                      }
-                      placeholder="(11) 99999-9999"
-                    />
-                    <Field
-                      label="E-mail"
-                      value={respondent.email}
-                      onChange={(e) => setRespondent({ ...respondent, email: e.target.value })}
-                      type="email"
-                    />
-                    <SelectField
-                      label="Tipo de caminhão"
-                      value={respondent.tipoCaminhao}
-                      onChange={(e) => setRespondent({ ...respondent, tipoCaminhao: e.target.value })}
-                      options={TRUCK_TYPES}
-                    />
-                    <Field
-                      label="Medida do pneu"
-                      value={respondent.tipoPneu}
-                      onChange={(e) => setRespondent({ ...respondent, tipoPneu: e.target.value })}
-                      placeholder="Ex.: 295/80R22.5"
-                    />
-                    <SelectField
-                      label="Aplicação do pneu *"
-                      value={respondent.aplicacaoPneu}
-                      onChange={(e) => setRespondent({ ...respondent, aplicacaoPneu: e.target.value })}
-                      options={TIRE_APPLICATIONS}
-                    />
-                    <Field
-                      label="Principal fornecedor hoje"
-                      value={respondent.fornecedorPrincipal}
-                      onChange={(e) =>
-                        setRespondent({ ...respondent, fornecedorPrincipal: e.target.value })
-                      }
-                    />
-                  </div>
-                </div>
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+        gap: 18,
+      }}
+    >
+      <div
+        style={{
+          background: "linear-gradient(180deg, #111214 0%, #0b0b0d 100%)",
+          border: "1px solid #27272a",
+          borderRadius: 22,
+          padding: 20,
+        }}
+      >
+        <SectionBadge>QUEM APLICA</SectionBadge>
 
-                <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
-                  <SecondaryButton onClick={() => setScreen("home")}>Voltar</SecondaryButton>
-                  <PrimaryButton onClick={startSurvey}>Iniciar pesquisa</PrimaryButton>
-                </div>
-              </Card>
-            )}
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 6 }}>
+            Dados do entrevistador
+          </div>
+          <div style={{ color: "#a1a1aa", fontSize: 14, lineHeight: 1.5 }}>
+            Identifique quem está realizando a pesquisa.
+          </div>
+        </div>
+
+        <Field
+          label="Nome do entrevistador *"
+          value={interviewer.nome}
+          onChange={(e) => setInterviewer({ ...interviewer, nome: e.target.value })}
+          placeholder="Digite o nome de quem está aplicando"
+        />
+      </div>
+
+      <div
+        style={{
+          background: "linear-gradient(180deg, #111214 0%, #0b0b0d 100%)",
+          border: "1px solid #27272a",
+          borderRadius: 22,
+          padding: 20,
+        }}
+      >
+        <SectionBadge>QUEM RESPONDE</SectionBadge>
+
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 6 }}>
+            Dados do entrevistado
+          </div>
+          <div style={{ color: "#a1a1aa", fontSize: 14, lineHeight: 1.5 }}>
+            Registre as informações principais para dar contexto à entrevista.
+          </div>
+        </div>
+
+        <Field
+          label="Nome do entrevistado *"
+          value={respondent.nome}
+          onChange={(e) => setRespondent({ ...respondent, nome: e.target.value })}
+          placeholder="Digite o nome do caminhoneiro"
+        />
+
+        <Field
+          label="Celular"
+          value={respondent.celular}
+          onChange={(e) =>
+            setRespondent({ ...respondent, celular: formatPhone(e.target.value) })
+          }
+          placeholder="(11) 99999-9999"
+        />
+
+        <Field
+          label="E-mail"
+          value={respondent.email}
+          onChange={(e) => setRespondent({ ...respondent, email: e.target.value })}
+          type="email"
+          placeholder="nome@exemplo.com"
+        />
+
+        <SelectField
+          label="Tipo de caminhão"
+          value={respondent.tipoCaminhao}
+          onChange={(e) => setRespondent({ ...respondent, tipoCaminhao: e.target.value })}
+          options={TRUCK_TYPES}
+        />
+
+        <Field
+          label="Medida do pneu"
+          value={respondent.tipoPneu}
+          onChange={(e) => setRespondent({ ...respondent, tipoPneu: e.target.value })}
+          placeholder="Ex.: 295/80R22.5"
+        />
+
+        <SelectField
+          label="Aplicação do pneu *"
+          value={respondent.aplicacaoPneu}
+          onChange={(e) =>
+            setRespondent({ ...respondent, aplicacaoPneu: e.target.value })
+          }
+          options={TIRE_APPLICATIONS}
+        />
+
+        <Field
+          label="Principal fornecedor hoje"
+          value={respondent.fornecedorPrincipal}
+          onChange={(e) =>
+            setRespondent({ ...respondent, fornecedorPrincipal: e.target.value })
+          }
+          placeholder="Ex.: marca ou fornecedor atual"
+        />
+      </div>
+    </div>
+
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        gap: 12,
+        marginTop: 20,
+        flexWrap: "wrap",
+        alignItems: "center",
+      }}
+    >
+      <div style={{ color: "#a1a1aa", fontSize: 14 }}>
+        Campos com * são essenciais para iniciar a pesquisa.
+      </div>
+
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <SecondaryButton onClick={() => setScreen("home")}>Voltar</SecondaryButton>
+        <PrimaryButton onClick={startSurvey}>Iniciar pesquisa</PrimaryButton>
+      </div>
+    </div>
+  </Card>
+)}
 
             {screen === "survey" && (
               <Card
