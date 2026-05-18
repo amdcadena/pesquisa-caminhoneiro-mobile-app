@@ -400,7 +400,6 @@ export default function App() {
 
         if (error) {
           console.error("Erro ao carregar do Supabase:", error.message);
-
           const saved = localStorage.getItem(STORAGE_KEY);
           if (saved) {
             try {
@@ -436,7 +435,6 @@ export default function App() {
         setRecords(formatted);
       } catch (err) {
         console.error("Falha ao carregar registros:", err);
-
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
           try {
@@ -461,11 +459,9 @@ export default function App() {
     async function loadSession() {
       try {
         const { data, error } = await supabase.auth.getSession();
-
         if (error) {
           console.error("Erro ao carregar sessão:", error.message);
         }
-
         if (mounted) {
           setAuthUser(data?.session?.user ?? null);
           setAuthLoading(false);
@@ -1057,33 +1053,81 @@ export default function App() {
                       gap: 12,
                     }}
                   >
-                    {[
-                      ["01", "Apresentar", "Mostrar a força da Magnum de forma curta, clara e profissional."],
-                      ["02", "Diagnosticar", "Entender se já conhece a marca, se já compra e qual o momento atual."],
-                      ["03", "Pesquisar", "Aplicar o formulário e captar dados importantes para evolução da jornada."],
-                      ["04", "Continuar", "Avançar para a fase 2 com mais contexto, mais permissão e mais chance de conexão."],
-                    ].map(([n, t, d]) => (
-                      <div
-                        key={n}
-                        style={{
-                          background: "#09090b",
-                          border: "1px solid #27272a",
-                          borderRadius: 20,
-                          padding: 18,
-                        }}
-                      >
-                        <div style={{ color: "#fca5a5", fontWeight: 800, fontSize: 13, marginBottom: 8 }}>
-                          {n}
-                        </div>
-                        <div style={{ fontWeight: 700, marginBottom: 6 }}>{t}</div>
-                        <div style={{ color: "#d4d4d8", fontSize: 14, lineHeight: 1.5 }}>{d}</div>
+                    <div
+                      style={{
+                        background: "#09090b",
+                        border: "1px solid #27272a",
+                        borderRadius: 20,
+                        padding: 18,
+                      }}
+                    >
+                      <div style={{ color: "#fca5a5", fontWeight: 800, fontSize: 13, marginBottom: 8 }}>
+                        01
                       </div>
-                    ))}
+                      <div style={{ fontWeight: 700, marginBottom: 6 }}>Apresentar</div>
+                      <div style={{ color: "#d4d4d8", fontSize: 14, lineHeight: 1.5 }}>
+                        Mostrar a força da Magnum de forma curta, clara e profissional.
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        background: "#09090b",
+                        border: "1px solid #27272a",
+                        borderRadius: 20,
+                        padding: 18,
+                      }}
+                    >
+                      <div style={{ color: "#fca5a5", fontWeight: 800, fontSize: 13, marginBottom: 8 }}>
+                        02
+                      </div>
+                      <div style={{ fontWeight: 700, marginBottom: 6 }}>Diagnosticar</div>
+                      <div style={{ color: "#d4d4d8", fontSize: 14, lineHeight: 1.5 }}>
+                        Entender se já conhece a marca, se já compra e qual o momento atual.
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        background: "#09090b",
+                        border: "1px solid #27272a",
+                        borderRadius: 20,
+                        padding: 18,
+                      }}
+                    >
+                      <div style={{ color: "#fca5a5", fontWeight: 800, fontSize: 13, marginBottom: 8 }}>
+                        03
+                      </div>
+                      <div style={{ fontWeight: 700, marginBottom: 6 }}>Pesquisar</div>
+                      <div style={{ color: "#d4d4d8", fontSize: 14, lineHeight: 1.5 }}>
+                        Aplicar o formulário e captar dados importantes para evolução da jornada.
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        background: "#09090b",
+                        border: "1px solid #27272a",
+                        borderRadius: 20,
+                        padding: 18,
+                      }}
+                    >
+                      <div style={{ color: "#fca5a5", fontWeight: 800, fontSize: 13, marginBottom: 8 }}>
+                        04
+                      </div>
+                      <div style={{ fontWeight: 700, marginBottom: 6 }}>Continuar</div>
+                      <div style={{ color: "#d4d4d8", fontSize: 14, lineHeight: 1.5 }}>
+                        Avançar para a fase 2 com mais contexto, mais permissão e mais chance de conexão.
+                      </div>
+                    </div>
                   </div>
                 </Card>
 
                 {visibleRecords.length > 0 && (
-                  <Card title="Resumo rápido" subtitle="Indicadores da base do usuário logado.">
+                  <Card
+                    title="Resumo rápido"
+                    subtitle="Indicadores da base do usuário logado."
+                  >
                     <div
                       style={{
                         display: "grid",
@@ -1091,8 +1135,16 @@ export default function App() {
                         gap: 12,
                       }}
                     >
-                      <MetricCard title="Pesquisas" value={visibleRecords.length} subtitle="Total da sua base" />
-                      <MetricCard title="Entrevistadores" value={interviewerGroups.length} subtitle="Na sua base" />
+                      <MetricCard
+                        title="Pesquisas"
+                        value={visibleRecords.length}
+                        subtitle="Total da sua base"
+                      />
+                      <MetricCard
+                        title="Entrevistadores"
+                        value={interviewerGroups.length}
+                        subtitle="Na sua base"
+                      />
                       <MetricCard
                         title="Aplicações"
                         value={new Set(visibleRecords.map((r) => r.respondent.aplicacaoPneu || "-")).size}
@@ -1105,323 +1157,352 @@ export default function App() {
             )}
 
             {screen === "identify" && (
-  <Card
-    title="Nova pesquisa"
-    subtitle="Preencha os dados abaixo antes de iniciar a entrevista."
-  >
-    <div
-      style={{
-        background: "linear-gradient(180deg, rgba(239,68,68,0.08) 0%, rgba(239,68,68,0.03) 100%)",
-        border: "1px solid rgba(239,68,68,0.15)",
-        borderRadius: 20,
-        padding: 16,
-        marginBottom: 18,
-      }}
-    >
-      <div style={{ fontWeight: 700, marginBottom: 6 }}>Antes de começar</div>
-      <div style={{ color: "#d4d4d8", fontSize: 14, lineHeight: 1.6 }}>
-        Esta etapa organiza a entrevista e garante que os dados fiquem corretamente vinculados ao
-        entrevistador e ao perfil do caminhoneiro.
-      </div>
-    </div>
+              <Card
+                title="Nova pesquisa"
+                subtitle="Preencha os dados abaixo antes de iniciar a entrevista."
+              >
+                <div
+                  style={{
+                    background: "linear-gradient(180deg, rgba(239,68,68,0.08) 0%, rgba(239,68,68,0.03) 100%)",
+                    border: "1px solid rgba(239,68,68,0.15)",
+                    borderRadius: 20,
+                    padding: 16,
+                    marginBottom: 18,
+                  }}
+                >
+                  <div style={{ fontWeight: 700, marginBottom: 6 }}>Antes de começar</div>
+                  <div style={{ color: "#d4d4d8", fontSize: 14, lineHeight: 1.6 }}>
+                    Esta etapa organiza a entrevista e garante que os dados fiquem corretamente vinculados ao
+                    entrevistador e ao perfil do caminhoneiro.
+                  </div>
+                </div>
 
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-        gap: 18,
-      }}
-    >
-      <div
-        style={{
-          background: "linear-gradient(180deg, #111214 0%, #0b0b0d 100%)",
-          border: "1px solid #27272a",
-          borderRadius: 22,
-          padding: 20,
-        }}
-      >
-        <SectionBadge>QUEM APLICA</SectionBadge>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+                    gap: 18,
+                  }}
+                >
+                  <div
+                    style={{
+                      background: "linear-gradient(180deg, #111214 0%, #0b0b0d 100%)",
+                      border: "1px solid #27272a",
+                      borderRadius: 22,
+                      padding: 20,
+                    }}
+                  >
+                    <SectionBadge>QUEM APLICA</SectionBadge>
 
-        <div style={{ marginBottom: 10 }}>
-          <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 6 }}>
-            Dados do entrevistador
-          </div>
-          <div style={{ color: "#a1a1aa", fontSize: 14, lineHeight: 1.5 }}>
-            Identifique quem está realizando a pesquisa.
-          </div>
-        </div>
+                    <div style={{ marginBottom: 10 }}>
+                      <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 6 }}>
+                        Dados do entrevistador
+                      </div>
+                      <div style={{ color: "#a1a1aa", fontSize: 14, lineHeight: 1.5 }}>
+                        Identifique quem está realizando a pesquisa.
+                      </div>
+                    </div>
 
-        <Field
-          label="Nome do entrevistador *"
-          value={interviewer.nome}
-          onChange={(e) => setInterviewer({ ...interviewer, nome: e.target.value })}
-          placeholder="Digite o nome de quem está aplicando"
-        />
-      </div>
+                    <Field
+                      label="Nome do entrevistador *"
+                      value={interviewer.nome}
+                      onChange={(e) => setInterviewer({ ...interviewer, nome: e.target.value })}
+                      placeholder="Digite o nome de quem está aplicando"
+                    />
+                  </div>
 
-      <div
-        style={{
-          background: "linear-gradient(180deg, #111214 0%, #0b0b0d 100%)",
-          border: "1px solid #27272a",
-          borderRadius: 22,
-          padding: 20,
-        }}
-      >
-        <SectionBadge>QUEM RESPONDE</SectionBadge>
+                  <div
+                    style={{
+                      background: "linear-gradient(180deg, #111214 0%, #0b0b0d 100%)",
+                      border: "1px solid #27272a",
+                      borderRadius: 22,
+                      padding: 20,
+                    }}
+                  >
+                    <SectionBadge>QUEM RESPONDE</SectionBadge>
 
-        <div style={{ marginBottom: 10 }}>
-          <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 6 }}>
-            Dados do entrevistado
-          </div>
-          <div style={{ color: "#a1a1aa", fontSize: 14, lineHeight: 1.5 }}>
-            Registre as informações principais para dar contexto à entrevista.
-          </div>
-        </div>
+                    <div style={{ marginBottom: 10 }}>
+                      <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 6 }}>
+                        Dados do entrevistado
+                      </div>
+                      <div style={{ color: "#a1a1aa", fontSize: 14, lineHeight: 1.5 }}>
+                        Registre as informações principais para dar contexto à entrevista.
+                      </div>
+                    </div>
 
-        <Field
-          label="Nome do entrevistado *"
-          value={respondent.nome}
-          onChange={(e) => setRespondent({ ...respondent, nome: e.target.value })}
-          placeholder="Digite o nome do caminhoneiro"
-        />
+                    <Field
+                      label="Nome do entrevistado *"
+                      value={respondent.nome}
+                      onChange={(e) => setRespondent({ ...respondent, nome: e.target.value })}
+                      placeholder="Digite o nome do caminhoneiro"
+                    />
 
-        <Field
-          label="Celular"
-          value={respondent.celular}
-          onChange={(e) =>
-            setRespondent({ ...respondent, celular: formatPhone(e.target.value) })
-          }
-          placeholder="(11) 99999-9999"
-        />
+                    <Field
+                      label="Celular"
+                      value={respondent.celular}
+                      onChange={(e) =>
+                        setRespondent({ ...respondent, celular: formatPhone(e.target.value) })
+                      }
+                      placeholder="(11) 99999-9999"
+                    />
 
-        <Field
-          label="E-mail"
-          value={respondent.email}
-          onChange={(e) => setRespondent({ ...respondent, email: e.target.value })}
-          type="email"
-          placeholder="nome@exemplo.com"
-        />
+                    <Field
+                      label="E-mail"
+                      value={respondent.email}
+                      onChange={(e) => setRespondent({ ...respondent, email: e.target.value })}
+                      type="email"
+                      placeholder="nome@exemplo.com"
+                    />
 
-        <SelectField
-          label="Tipo de caminhão"
-          value={respondent.tipoCaminhao}
-          onChange={(e) => setRespondent({ ...respondent, tipoCaminhao: e.target.value })}
-          options={TRUCK_TYPES}
-        />
+                    <SelectField
+                      label="Tipo de caminhão"
+                      value={respondent.tipoCaminhao}
+                      onChange={(e) => setRespondent({ ...respondent, tipoCaminhao: e.target.value })}
+                      options={TRUCK_TYPES}
+                    />
 
-        <Field
-          label="Medida do pneu"
-          value={respondent.tipoPneu}
-          onChange={(e) => setRespondent({ ...respondent, tipoPneu: e.target.value })}
-          placeholder="Ex.: 295/80R22.5"
-        />
+                    <Field
+                      label="Medida do pneu"
+                      value={respondent.tipoPneu}
+                      onChange={(e) => setRespondent({ ...respondent, tipoPneu: e.target.value })}
+                      placeholder="Ex.: 295/80R22.5"
+                    />
 
-        <SelectField
-          label="Aplicação do pneu *"
-          value={respondent.aplicacaoPneu}
-          onChange={(e) =>
-            setRespondent({ ...respondent, aplicacaoPneu: e.target.value })
-          }
-          options={TIRE_APPLICATIONS}
-        />
+                    <SelectField
+                      label="Aplicação do pneu *"
+                      value={respondent.aplicacaoPneu}
+                      onChange={(e) =>
+                        setRespondent({ ...respondent, aplicacaoPneu: e.target.value })
+                      }
+                      options={TIRE_APPLICATIONS}
+                    />
 
-        <Field
-          label="Principal fornecedor hoje"
-          value={respondent.fornecedorPrincipal}
-          onChange={(e) =>
-            setRespondent({ ...respondent, fornecedorPrincipal: e.target.value })
-          }
-          placeholder="Ex.: marca ou fornecedor atual"
-        />
-      </div>
-    </div>
+                    <Field
+                      label="Principal fornecedor hoje"
+                      value={respondent.fornecedorPrincipal}
+                      onChange={(e) =>
+                        setRespondent({ ...respondent, fornecedorPrincipal: e.target.value })
+                      }
+                      placeholder="Ex.: marca ou fornecedor atual"
+                    />
+                  </div>
+                </div>
 
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        gap: 12,
-        marginTop: 20,
-        flexWrap: "wrap",
-        alignItems: "center",
-      }}
-    >
-      <div style={{ color: "#a1a1aa", fontSize: 14 }}>
-        Campos com * são essenciais para iniciar a pesquisa.
-      </div>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    marginTop: 20,
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                  }}
+                >
+                  <div style={{ color: "#a1a1aa", fontSize: 14 }}>
+                    Campos com * são essenciais para iniciar a pesquisa.
+                  </div>
 
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <SecondaryButton onClick={() => setScreen("home")}>Voltar</SecondaryButton>
-        <PrimaryButton onClick={startSurvey}>Iniciar pesquisa</PrimaryButton>
-      </div>
-    </div>
-  </Card>
-)}
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <SecondaryButton onClick={() => setScreen("home")}>Voltar</SecondaryButton>
+                    <PrimaryButton onClick={startSurvey}>Iniciar pesquisa</PrimaryButton>
+                  </div>
+                </div>
+              </Card>
+            )}
 
             {screen === "survey" && (
-  <Card
-    title={`Pergunta ${questionIndex + 1} de ${QUESTIONS.length}`}
-    subtitle="Escolha a opção que melhor representa a percepção do entrevistado."
-    right={
-      <div
-        style={{
-          minWidth: 110,
-          textAlign: "right",
-          color: "#fca5a5",
-          fontWeight: 800,
-          fontSize: 15,
-        }}
-      >
-        {Math.round(progress)}%
-      </div>
-    }
-  >
-    <div
-      style={{
-        background: "#0b0b0d",
-        border: "1px solid #27272a",
-        borderRadius: 20,
-        padding: 16,
-        marginBottom: 20,
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 12,
-          alignItems: "center",
-          flexWrap: "wrap",
-          marginBottom: 10,
-        }}
-      >
-        <div style={{ color: "#a1a1aa", fontSize: 14 }}>
-          Etapa atual da entrevista
-        </div>
-        <div style={{ color: "#d4d4d8", fontSize: 14, fontWeight: 700 }}>
-          {questionIndex + 1} / {QUESTIONS.length}
-        </div>
-      </div>
+              <Card
+                title={`Pergunta ${questionIndex + 1} de ${QUESTIONS.length}`}
+                subtitle="Escolha a opção que melhor representa a percepção do entrevistado."
+                right={
+                  <div
+                    style={{
+                      minWidth: 110,
+                      textAlign: "right",
+                      color: "#fca5a5",
+                      fontWeight: 800,
+                      fontSize: 15,
+                    }}
+                  >
+                    {Math.round(progress)}%
+                  </div>
+                }
+              >
+                <div
+                  style={{
+                    background: "#0b0b0d",
+                    border: "1px solid #27272a",
+                    borderRadius: 20,
+                    padding: 16,
+                    marginBottom: 20,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                      marginBottom: 10,
+                    }}
+                  >
+                    <div style={{ color: "#a1a1aa", fontSize: 14 }}>
+                      Etapa atual da entrevista
+                    </div>
+                    <div style={{ color: "#d4d4d8", fontSize: 14, fontWeight: 700 }}>
+                      {questionIndex + 1} / {QUESTIONS.length}
+                    </div>
+                  </div>
 
-      <div
-        style={{
-          height: 14,
-          background: "#1a1a1d",
-          borderRadius: 999,
-          overflow: "hidden",
-          border: "1px solid #27272a",
-        }}
-      >
-        <div
-          style={{
-            width: `${progress}%`,
-            height: "100%",
-            background: "linear-gradient(90deg, #ef4444 0%, #b91c1c 100%)",
-            transition: "width 0.3s ease",
-            boxShadow: "0 0 18px rgba(239,68,68,0.25)",
-          }}
-        />
-      </div>
-    </div>
+                  <div
+                    style={{
+                      height: 14,
+                      background: "#1a1a1d",
+                      borderRadius: 999,
+                      overflow: "hidden",
+                      border: "1px solid #27272a",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: `${progress}%`,
+                        height: "100%",
+                        background: "linear-gradient(90deg, #ef4444 0%, #b91c1c 100%)",
+                        transition: "width 0.3s ease",
+                        boxShadow: "0 0 18px rgba(239,68,68,0.25)",
+                      }}
+                    />
+                  </div>
+                </div>
 
-    <div
-      style={{
-        background: "linear-gradient(180deg, #111214 0%, #0b0b0d 100%)",
-        border: "1px solid #27272a",
-        borderRadius: 24,
-        padding: 22,
-        marginBottom: 18,
-      }}
-    >
-      <SectionBadge>PERGUNTA ATUAL</SectionBadge>
+                <div
+                  style={{
+                    background: "linear-gradient(180deg, #111214 0%, #0b0b0d 100%)",
+                    border: "1px solid #27272a",
+                    borderRadius: 24,
+                    padding: 22,
+                    marginBottom: 18,
+                  }}
+                >
+                  <SectionBadge>PERGUNTA ATUAL</SectionBadge>
 
-      <h3
-        style={{
-          margin: 0,
-          fontSize: 26,
-          lineHeight: 1.45,
-          letterSpacing: "-0.01em",
-        }}
-      >
-        {QUESTIONS[questionIndex]}
-      </h3>
-    </div>
+                  <h3
+                    style={{
+                      margin: 0,
+                      fontSize: 26,
+                      lineHeight: 1.45,
+                      letterSpacing: "-0.01em",
+                    }}
+                  >
+                    {QUESTIONS[questionIndex]}
+                  </h3>
+                </div>
 
-    <div style={{ display: "grid", gap: 12 }}>
-      {OPTIONS.map((option) => {
-        const selected = answers[questionIndex] === option;
+                <div style={{ display: "grid", gap: 12 }}>
+                  {OPTIONS.map((option) => {
+                    const selected = answers[questionIndex] === option;
 
-        return (
-          <button
-            key={option}
-            onClick={() => {
-              const updated = [...answers];
-              updated[questionIndex] = option;
-              setAnswers(updated);
-            }}
-            style={{
-              textAlign: "left",
-              padding: 18,
-              borderRadius: 20,
-              border: selected ? "1px solid #ef4444" : "1px solid #3f3f46",
-              background: selected
-                ? "linear-gradient(180deg, rgba(239,68,68,0.20) 0%, rgba(127,29,29,0.16) 100%)"
-                : "linear-gradient(180deg, #0d0d10 0%, #09090b 100%)",
-              color: "white",
-              cursor: "pointer",
-              fontSize: 15,
-              fontWeight: selected ? 700 : 500,
-              boxShadow: selected ? "0 12px 24px rgba(127,29,29,0.22)" : "none",
-              transition: "all 0.2s ease",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-              }}
-            >
-              <div
-                style={{
-                  width: 18,
-                  height: 18,
-                  borderRadius: 999,
-                  border: selected ? "5px solid #ef4444" : "2px solid #71717a",
-                  background: selected ? "#fff" : "transparent",
-                  flexShrink: 0,
-                }}
-              />
-              <div>{option}</div>
-            </div>
-          </button>
-        );
-      })}
-    </div>
+                    return (
+                      <button
+                        key={option}
+                        onClick={() => {
+                          const updated = [...answers];
+                          updated[questionIndex] = option;
+                          setAnswers(updated);
+                        }}
+                        style={{
+                          textAlign: "left",
+                          padding: 18,
+                          borderRadius: 20,
+                          border: selected ? "1px solid #ef4444" : "1px solid #3f3f46",
+                          background: selected
+                            ? "linear-gradient(180deg, rgba(239,68,68,0.20) 0%, rgba(127,29,29,0.16) 100%)"
+                            : "linear-gradient(180deg, #0d0d10 0%, #09090b 100%)",
+                          color: "white",
+                          cursor: "pointer",
+                          fontSize: 15,
+                          fontWeight: selected ? 700 : 500,
+                          boxShadow: selected ? "0 12px 24px rgba(127,29,29,0.22)" : "none",
+                          transition: "all 0.2s ease",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 12,
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: 18,
+                              height: 18,
+                              borderRadius: 999,
+                              border: selected ? "5px solid #ef4444" : "2px solid #71717a",
+                              background: selected ? "#fff" : "transparent",
+                              flexShrink: 0,
+                            }}
+                          />
+                          <div>{option}</div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
 
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        gap: 12,
-        marginTop: 22,
-        flexWrap: "wrap",
-        alignItems: "center",
-      }}
-    >
-      <div style={{ color: "#a1a1aa", fontSize: 14 }}>
-        Selecione uma opção para continuar.
-      </div>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    marginTop: 22,
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                  }}
+                >
+                  <div style={{ color: "#a1a1aa", fontSize: 14 }}>
+                    Selecione uma opção para continuar.
+                  </div>
 
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <SecondaryButton onClick={previousQuestion} disabled={questionIndex === 0}>
-          Anterior
-        </SecondaryButton>
-        <PrimaryButton onClick={nextQuestion}>Próxima</PrimaryButton>
-      </div>
-    </div>
-  </Card>
-)}
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <SecondaryButton onClick={previousQuestion} disabled={questionIndex === 0}>
+                      Anterior
+                    </SecondaryButton>
+                    <PrimaryButton onClick={nextQuestion}>Próxima</PrimaryButton>
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            {screen === "suggestion" && (
+              <Card
+                title="Sugestão final"
+                subtitle="Registre aqui qualquer observação, melhoria ou funcionalidade sugerida."
+              >
+                <textarea
+                  value={suggestion}
+                  onChange={(e) => setSuggestion(e.target.value)}
+                  style={{
+                    width: "100%",
+                    minHeight: 180,
+                    borderRadius: 18,
+                    border: "1px solid #3f3f46",
+                    background: "#09090b",
+                    color: "white",
+                    padding: 16,
+                    fontSize: 15,
+                    boxSizing: "border-box",
+                    outline: "none",
+                  }}
+                />
+                <div style={{ display: "flex", gap: 10, marginTop: 18, flexWrap: "wrap" }}>
+                  <SecondaryButton onClick={() => setScreen("survey")}>Voltar</SecondaryButton>
+                  <PrimaryButton onClick={finishSurvey}>Finalizar pesquisa</PrimaryButton>
+                </div>
+              </Card>
+            )}
+
             {screen === "reports" && (
               <>
                 {!reportUnlocked ? (
